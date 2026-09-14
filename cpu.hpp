@@ -12,44 +12,32 @@ struct Flags {
 
 // flags for if immediate bytes need to be read
 enum class OpState {
-    READY,
+    READY,  // normal opcode processing
     IMM8,
     IMM16L,  // goes to low first
     IMM16H,
 };
 
-// for opcodes requiring imm16
-enum class OpCodeType16 {
-    LD_r16_IMM16,
-    LD_IMM16_SP,
-};
-// for opcodes requiring imm8
-enum class OpCodeType8 {
-    JR_IMM8,
-    JR_COND_IMM8,
-    LD_r8_IMM8,
-};
-
-enum class OpCodeType {
-    /* ------------------------ misc ------------------------ */
+enum OpCodeType {
     NOP = 0,
-
-    /* ------------------------ imm16 ----------------------- */
-    LD_r16_IMM16,
     LD_IMM16_SP = 0b0000'1000,
-    /* ------------------------ imm8 ------------------------ */
-    JR_IMM8,
-    JR_COND_IMM8,
-    LD_r8_IMM8,
+    STOP_IMM8 = 0b0001'0000,  // consumes 2 bytes
+    JR_IMM8 = 0b0001'1000,
+
     /* ---------------------- reg A ops --------------------- */
-    ADC_A_IMM8 = 0b11'000'110,
-    ADD_A_IMM8 = 0b11'001'110,
+    ADD_A_IMM8 = 0b11'000'110,
+    ADC_A_IMM8 = 0b11'001'110,
     SUB_A_IMM8 = 0b11'010'110,
     SBC_A_IMM8 = 0b11'011'110,
     AND_A_IMM8 = 0b11'100'110,
     XOR_A_IMM8 = 0b11'101'110,
     OR_A_IMM8 = 0b11'110'110,
     CP_A_IMM8 = 0b11'111'110,
+
+    /* ------------------ variable opcodes ------------------ */
+    LD_r8_IMM8,
+    LD_r16_IMM16,
+    JR_COND_IMM8,
 };
 
 typedef uint8_t clock_cycles;
@@ -61,12 +49,12 @@ class CPU {
    private:
     clock_cycles parse_opcode();
     void parse_8bit_arith();
-    void parse_block0();
-    void parse_block3();
+    clock_cycles parse_block0();
+    clock_cycles parse_block3();
 
     // imm handling
-    void handle_imm16();
-    void handle_imm8(uint8_t byte);
+    clock_cycles handle_imm16();
+    clock_cycles handle_imm8(uint8_t byte);
 
     Flags flags;
     void set_flags_znhc(bool z, bool n, bool h, bool c) {
@@ -81,9 +69,16 @@ class CPU {
         flags.c = c;
     }
 
+    /* ---------- 8-bit arithmetics and sets flags ---------- */
+    uint8_t calc_add8(uint8_t a, uint8_t b);
+    uint8_t calc_adc8(uint8_t a, uint8_t b);
+    uint8_t calc_sub8(uint8_t a, uint8_t b);  // use for cp8 as well
+    uint8_t calc_sbc8(uint8_t a, uint8_t b);
+    uint8_t calc_and8(uint8_t a, uint8_t b);
+    uint8_t calc_xor8(uint8_t a, uint8_t b);
+    uint8_t calc_or8(uint8_t a, uint8_t b);
+
     uint8_t opcode;
-    OpCodeType16 opcode16;
-    OpCodeType8 opcode8;
     OpState op_state;
     uint16_t imm16;
     uint8_t r16_addr;  // for imm16 stuff

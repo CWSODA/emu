@@ -8,6 +8,7 @@ set(SOURCE_FILES
     cpu.cpp 
     memory.cpp
     registers.cpp
+    calc_flag_and_ops.cpp
 )
 
 # Add executable target with source files listed in SOURCE_FILES variable

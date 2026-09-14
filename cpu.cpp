@@ -11,9 +11,8 @@ clock_cycles CPU::parse_byte(uint8_t byte) {
             break;
         }
         case OpState::IMM8: {
-            handle_imm8(byte);
             op_state = OpState::READY;
-            break;
+            return handle_imm8(byte);
         }
         case OpState::IMM16L: {
             imm16 = byte;
@@ -22,15 +21,14 @@ clock_cycles CPU::parse_byte(uint8_t byte) {
         }
         case OpState::IMM16H: {
             imm16 += byte << 8;
-            handle_imm16();
             op_state = OpState::READY;
-            break;
+            return handle_imm16();
         }
     }
 }
 
 clock_cycles CPU::parse_opcode() {
-    // compare first two bits
+    // match variable opcodes first
     switch (opcode >> 6) {
         case 0: {
             parse_block0();
@@ -54,92 +52,58 @@ clock_cycles CPU::parse_opcode() {
             break;
         }
     }
+    switch (opcode) {}
 }
 
 void CPU::parse_8bit_arith() {
     uint8_t reg = opcode & 0b111;  // last 3 bits is register
-    bool old_c = flags.c;
     switch (opcode >> 3) {
         case 0b10'000: {  // add
-            flags.c = reg_a > (0xff - r8(reg));
-            flags.h = (reg_a & 0x0f + r8(reg) & 0x0f) > 0x0f;
-            reg_a += r8(reg);  // change reg
-            flags.z = (reg_a == 0);
-            flags.n = false;
+            reg_a = calc_add8(reg_a, r8(reg));
             break;
         }
         case 0b10'001: {  // adc
-            flags.c = (static_cast<uint16_t>(reg_a) + r8(reg) + old_c) > 0xff;
-            flags.h = (reg_a & 0x0f + r8(reg) & 0x0f + old_c) > 0x0f;
-            reg_a += r8(reg) + old_c;  // change reg
-            flags.z = (reg_a == 0);
-            flags.n = false;
+            reg_a = calc_adc8(reg_a, r8(reg));
             break;
         }
-        case 0b10'010: {                                  // sub
-            flags.c = reg_a < r8(reg);                    // underflow
-            flags.h = (reg_a & 0x0f) < (r8(reg) & 0x0f);  // borrow from bit4
-            reg_a -= r8(reg);                             // change reg
-            flags.z = (reg_a == 0);
-            flags.n = true;
+        case 0b10'010: {  // sub
+            reg_a = calc_sub8(reg_a, r8(reg));
             break;
         }
-        case 0b10'011: {                                             // subc
-            flags.c = reg_a < (static_cast<uint16_t>(r8(reg)) + 1);  // underflow
-            flags.h = (reg_a & 0x0f) < (r8(reg) & 0x0f + 1);         // borrow from bit4
-            reg_a -= r8(reg) + old_c;                                // change reg
-            flags.z = (reg_a == 0);
-            flags.n = true;
+        case 0b10'011: {  // sbc
+            reg_a = calc_sbc8(reg_a, r8(reg));
             break;
         }
-        case 0b10'100: {       // and
-            reg_a &= r8(reg);  // change reg
-            flags.z = (reg_a == 0);
-            flags.h = true;
-            flags.c = false;
-            flags.n = false;
-            break;
+        case 0b10'100: {  // and
+            reg_a = calc_and8(reg_a, r8(reg));
             break;
         }
-        case 0b10'101: {       // xor
-            reg_a ^= r8(reg);  // change reg
-            flags.z = (reg_a == 0);
-            flags.c = false;
-            flags.h = false;
-            flags.n = false;
+        case 0b10'101: {  // xor
+            reg_a = calc_xor8(reg_a, r8(reg));
             break;
         }
-        case 0b10'110: {       // or
-            reg_a |= r8(reg);  // change reg
-            flags.z = (reg_a == 0);
-            flags.c = false;
-            flags.h = false;
-            flags.n = false;
+        case 0b10'110: {  // or
+            reg_a = calc_or8(reg_a, r8(reg));
             break;
         }
-        case 0b10'111: {                                  // cp (compare)
-            flags.c = reg_a < r8(reg);                    // underflow
-            flags.h = (reg_a & 0x0f) < (r8(reg) & 0x0f);  // borrow from bit4
-            uint8_t result = reg_a - r8(reg);
-            flags.z = !(bool)result;
-            flags.n = true;
+        case 0b10'111: {  // cp (compare, subtracts without updating register)
+            calc_sub8(reg_a, r8(reg));
             break;
         }
     }
 }
 
 // returns cycles used
-void CPU::parse_block0() {
+clock_cycles CPU::parse_block0() {
+    uint8_t last_three = (opcode & 0b111);
+    uint8_t last_nibble = (opcode & 0b1111);
     switch (opcode) {
-        case 0:  // nop
-            return;
         case 0b0001'0000: {            // stop
             op_state = OpState::IMM8;  // second byte usually discarded
             break;
         }
         case 0b0000'1000: {  // ld [imm16] sp
             op_state = OpState::IMM16L;
-            opcode16 = OpCodeType16::LD_IMM16_SP;
             break;
         }
         case 0b000'11'000: {  // jr imm8
@@ -193,9 +157,6 @@ void CPU::parse_block0() {
         default: {
         }
     }
-    //
-    uint8_t last_three = (opcode & 0b111);
-    uint8_t last_nibble = (opcode & 0b1111);
     if (last_three == 0b100) {  // inc r8
         uint8_t reg = opcode >> 3;
         flags.h = (r8(reg) & 0b1111) == 0b1111;  // overflow into bit 4
@@ -210,14 +171,11 @@ void CPU::parse_block0() {
         flags.n = true;
     } else if (last_three == 0b110) {  // ld r8, imm8
         op_state = OpState::IMM8;
-        opcode8 = OpCodeType8::LD_r8_IMM8;
         r8_addr = opcode >> 3;
     } else if (last_three == 0b000 && (opcode & 0b0010'0000)) {  // jr cond, imm8
         op_state = OpState::IMM8;
-        opcode8 = OpCodeType8::JR_COND_IMM8;
         r8_addr = (opcode >> 3) & 0b11;
     } else if (last_nibble == 0b0001) {  // ld r16, imm16
-        opcode16 = OpCodeType16::LD_r16_IMM16;
         op_state = OpState::IMM16L;
         r16_addr = opcode >> 4;
     } else if (last_nibble == 0b0010) {  // ld [r16mem], a
@@ -262,44 +220,85 @@ void CPU::parse_block0() {
     }
 }
 
-void CPU::parse_block0() {
+clock_cycles CPU::parse_block3() {
     switch (opcode) {
-        case 0b1100'0110: {  // add a imm8
-            break;
+        case ADD_A_IMM8:
+        case ADC_A_IMM8:
+        case SUB_A_IMM8:
+        case SBC_A_IMM8:
+        case AND_A_IMM8:
+        case XOR_A_IMM8:
+        case OR_A_IMM8:
+        case CP_A_IMM8: {
+            op_state = OpState::IMM8;
+            return 0;
         }
     }
 }
 
-void CPU::handle_imm16() {
-    switch (opcode16) {
-        case OpCodeType16::LD_IMM16_SP: {  // 5 cycles
+clock_cycles CPU::handle_imm16() {
+    switch (opcode) {
+        case LD_IMM16_SP: {  // 5 cycles
             memory[imm16] = SP & 0xff;
             memory[imm16 + 1] = SP >> 8;
             break;
         }
-        case OpCodeType16::LD_r16_IMM16: {  // 3 cycles
+        case LD_r16_IMM16: {  // 3 cycles
             set_r16(r16_addr, imm16);
             break;
         }
     }
 }
 
-void CPU::handle_imm8(uint8_t byte) {
-    switch (opcode8) {
-        case OpCodeType8::JR_IMM8: {  // jr imm8
+clock_cycles CPU::handle_imm8(uint8_t byte) {
+    switch (opcode) {
+        case JR_IMM8: {  // jr imm8
             PC = PC + (int16_t)byte;
             break;
         }
-        case OpCodeType8::LD_r8_IMM8: {  // jr cond imm8
+        case LD_r8_IMM8: {  // jr cond imm8
             // conditions nz, z, nc, c
             if ((r8_addr == 0 && !flags.z) | (r8_addr == 1 && flags.z) |
                 (r8_addr == 2 && !flags.c) | (r8_addr == 3 && flags.c))
                 PC = PC + (int16_t)byte;
             break;
         }
-        case OpCodeType8::JR_COND_IMM8: {  // 2 cycles
+        case JR_COND_IMM8: {  // 2 cycles
             r8(r8_addr) = byte;
-            break;
+            return 2;
+        }
+        /* ------------------- reg a imm8 ops ------------------- */
+        case ADD_A_IMM8: {
+            reg_a = calc_add8(reg_a, byte);
+            return 2;
+        }
+        case ADC_A_IMM8: {
+            reg_a = calc_adc8(reg_a, byte);
+            return 2;
+        }
+        case SUB_A_IMM8: {
+            reg_a = calc_sub8(reg_a, byte);
+            return 2;
+        }
+        case SBC_A_IMM8: {
+            reg_a = calc_sbc8(reg_a, byte);
+            return 2;
+        }
+        case AND_A_IMM8: {
+            reg_a = calc_and8(reg_a, byte);
+            return 2;
+        }
+        case XOR_A_IMM8: {
+            reg_a = calc_xor8(reg_a, byte);
+            return 2;
+        }
+        case OR_A_IMM8: {
+            reg_a = calc_or8(reg_a, byte);
+            return 2;
+        }
+        case CP_A_IMM8: {
+            calc_sub8(reg_a, byte);
+            return 2;
         }
     }
 }
