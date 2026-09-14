@@ -30,17 +30,22 @@ enum class OpCodeType8 {
     LD_r8_IMM8,
 };
 
-enum class OpCodeType {
-    /* ------------------------ misc ------------------------ */
+// non range opcodes
+enum OpCodeType {
     NOP = 0,
-
-    /* ------------------------ imm16 ----------------------- */
-    LD_r16_IMM16,
+    HALT = 0b0111'0110,
     LD_IMM16_SP = 0b0000'1000,
-    /* ------------------------ imm8 ------------------------ */
-    JR_IMM8,
-    JR_COND_IMM8,
-    LD_r8_IMM8,
+    JR_IMM8 = 0b000'11'000,
+    /* --------------------- block0 ops --------------------- */
+    RLCA = 0b0000'0111,
+    RRCA = 0b0000'1111,
+    RLA = 0b0001'0111,
+    RRA = 0b0001'1111,
+    DAA = 0b0010'0111,  // decimal adjust accumulator
+    CPL = 0b0010'1111,  // bitwise not register A
+    SCF = 0b0011'0111,  // set carry flag
+    CCF = 0b0011'1111,  // compliment carry flag
+    /* --------------------- block3 ops --------------------- */
     /* ---------------------- reg A ops --------------------- */
     ADC_A_IMM8 = 0b11'000'110,
     ADD_A_IMM8 = 0b11'001'110,
@@ -50,6 +55,19 @@ enum class OpCodeType {
     XOR_A_IMM8 = 0b11'101'110,
     OR_A_IMM8 = 0b11'110'110,
     CP_A_IMM8 = 0b11'111'110,
+
+    RET = 0b110'01'001,
+    RETI = 0b110'11'001,
+    JP_IMM16 = 0b1100'0011,
+    JP_HL = 0b1110'1001,
+    CALL_IMM16 = 0b1100'1101,
+
+    CB_IMM8 = 0b1100'1011,
+
+    /* ------------------ variable opcodes ------------------ */
+    LD_r16_IMM16,
+    LD_r8_IMM8,
+    JR_COND_IMM8,
 };
 
 typedef uint8_t clock_cycles;

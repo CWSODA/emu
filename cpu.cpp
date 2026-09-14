@@ -30,27 +30,158 @@ clock_cycles CPU::parse_byte(uint8_t byte) {
 }
 
 clock_cycles CPU::parse_opcode() {
-    // compare first two bits
-    switch (opcode >> 6) {
-        case 0: {
-            parse_block0();
+    /* ---------------- 8-bit reg to reg load --------------- */
+    if (opcode >= 0b01'00'0000 && opcode <= 0b01'11'1111) {
+        uint8_t dest = (opcode >> 3) & 0b111;
+        uint8_t src = opcode & 0b111;
+        r8(dest) = r8(src);
+        return 1;
+    }
+    /* -------------- 8-bit arithmetic on reg A ------------- */
+    if (opcode >> 6 == 0b10) {
+        parse_8bit_arith();
+        return 1;
+    }
+    /* ---------------- nibble / 3-bit checks --------------- */
+    uint8_t last_three = (opcode & 0b111);
+    uint8_t last_nibble = (opcode & 0b1111);
+    if (last_three == 0b100) {  // inc r8
+        uint8_t reg = opcode >> 3;
+        flags.h = (r8(reg) & 0b1111) == 0b1111;  // overflow into bit 4
+        r8(reg) += 1;
+        flags.z = (r8(reg) == 0);
+        flags.n = false;
+        return 1;
+    }
+    if (last_three == 0b101) {  // dec r8
+        uint8_t reg = opcode >> 3;
+        flags.h = (r8(reg) & 0b1111) == 0;  // borrow from bit 4
+        r8(reg) -= 1;
+        flags.z = (r8(reg) == 0);
+        flags.n = true;
+        return 1;
+    }
+    if (last_three == 0b110) {  // ld r8, imm8
+        op_state = OpState::IMM8;
+        opcode8 = OpCodeType8::LD_r8_IMM8;
+        r8_addr = opcode >> 3;
+        return 0;
+    }
+    if (last_three == 0b000 && (opcode & 0b0010'0000)) {  // jr cond, imm8
+        op_state = OpState::IMM8;
+        opcode8 = OpCodeType8::JR_COND_IMM8;
+        r8_addr = (opcode >> 3) & 0b11;
+        return 0;
+    }
+    if (last_nibble == 0b0001) {  // ld r16, imm16
+        opcode16 = OpCodeType16::LD_r16_IMM16;
+        op_state = OpState::IMM16L;
+        r16_addr = opcode >> 4;
+        return 0;
+    }
+    if (last_nibble == 0b0010) {  // ld [r16mem], a
+        // r16mem: bc, de, hl+, hl-
+        uint8_t addr = opcode >> 4;
+        if (addr == 0)
+            memory[get_bc()] = reg_a;
+        else if (addr == 1)
+            memory[get_de()] = reg_a;
+        else {
+            uint16_t hl = get_hl();
+            memory[hl] = reg_a;
+            set_hl(hl + (addr == 2 ? 1 : -1));  // incr / decr
+        }
+        return 2;
+    } else if (last_nibble == 0b1010) {  // ld a, [r16mem]
+        // r16mem: bc, de, hl+, hl-
+        uint8_t addr = opcode >> 4;
+        if (addr == 0)
+            reg_a = memory[get_bc()];
+        else if (addr == 1)
+            reg_a = memory[get_de()];
+        else {
+            uint16_t hl = get_hl();
+            reg_a = memory[hl];
+            set_hl(hl + (addr == 2 ? 1 : -1));  // incr / decr
+        }
+        return 1;
+    }
+    // 16-bit arithmetic
+    else if (last_nibble == 0b0011) {  // inc r16
+        uint8_t addr = opcode >> 4;
+        set_r16(addr, get_r16(addr) + 1);
+        return 2;
+    } else if (last_nibble == 0b1011) {  // dec r16
+        uint8_t addr = opcode >> 4;
+        set_r16(addr, get_r16(addr) - 1);
+        return 2;
+    } else if (last_nibble == 0b1001) {  // add hl, r16
+        uint16_t hl = get_hl();
+        uint16_t val = get_r16(opcode >> 4);
+        flags.n = false;
+        flags.h = (hl & 0xfff + val & 0xfff) > 0xfff;  // bit 11 overflow
+        flags.c = hl > (0xff'ff - val);                // bit 15 overflow
+        set_hl(hl + val);
+        return 2;
+    }
+    switch (opcode) {
+        case NOP: {
+            return 1;
+        }
+        case HALT: {
+            printf("halt called!\n");
+            return 1;
+        }
+        case LD_IMM16_SP: {
+            op_state = OpState::IMM16L;
+            opcode16 = OpCodeType16::LD_IMM16_SP;
             break;
         }
-        case 0b01: {  // 8-bit reg to reg load
-            if (opcode == 0b0111011) {
-                printf("halt called!\n");
-            }
-            uint8_t dest = (opcode >> 3) & 0b111;
-            uint8_t src = opcode & 0b111;
-            r8(dest) = r8(src);
-            return 1;
+        case JR_IMM8: {  // jr imm8
+            op_state = OpState::IMM8;
+            break;
         }
-        case 0b10: {  // 8-bit arithmetic on reg A
-            parse_8bit_arith();
-            return 1;
+        /* ---------------- reg a stuff and flags --------------- */
+        case RLCA: {
+            set_flags_znhc(0, 0, 0, reg_a & 0b1000'000);
+            reg_a <<= 1;
+            break;
         }
-        case 0b11: {
-            parse_block3();
+        case RRCA: {
+            set_flags_znhc(0, 0, 0, reg_a & 0b1);
+            reg_a >>= 1;
+            break;
+        }
+        case RLA: {
+            bool msb = reg_a & 0b1000'0000;
+            reg_a <<= 1;
+            reg_a += flags.c;
+            set_flags_znhc(0, 0, 0, msb);
+            break;
+        }
+        case RRA: {
+            bool lsb = reg_a & 1;
+            reg_a >>= 1;
+            reg_a += flags.c << 8;
+            set_flags_znhc(0, 0, 0, lsb);
+            break;
+        }
+        case DAA: {
+            printf("DAA not yet implemented!\n");
+            break;
+        }
+        case CPL: {
+            reg_a = ~reg_a;
+            flags.n = 1;
+            flags.h = 1;
+            break;
+        }
+        case SCF: {
+            set_flags_nhc(0, 0, 1);
+            break;
+        }
+        case CCF: {
+            set_flags_nhc(0, 0, !flags.c);
             break;
         }
     }
@@ -271,13 +402,13 @@ void CPU::parse_block0() {
 }
 
 void CPU::handle_imm16() {
-    switch (opcode16) {
-        case OpCodeType16::LD_IMM16_SP: {  // 5 cycles
+    switch (opcode) {
+        case LD_IMM16_SP: {  // 5 cycles
             memory[imm16] = SP & 0xff;
             memory[imm16 + 1] = SP >> 8;
             break;
         }
-        case OpCodeType16::LD_r16_IMM16: {  // 3 cycles
+        case LD_r16_IMM16: {  // 3 cycles
             set_r16(r16_addr, imm16);
             break;
         }
@@ -285,19 +416,19 @@ void CPU::handle_imm16() {
 }
 
 void CPU::handle_imm8(uint8_t byte) {
-    switch (opcode8) {
-        case OpCodeType8::JR_IMM8: {  // jr imm8
+    switch (opcode) {
+        case JR_IMM8: {  // jr imm8
             PC = PC + (int16_t)byte;
             break;
         }
-        case OpCodeType8::LD_r8_IMM8: {  // jr cond imm8
+        case LD_r8_IMM8: {  // jr cond imm8
             // conditions nz, z, nc, c
             if ((r8_addr == 0 && !flags.z) | (r8_addr == 1 && flags.z) |
                 (r8_addr == 2 && !flags.c) | (r8_addr == 3 && flags.c))
                 PC = PC + (int16_t)byte;
             break;
         }
-        case OpCodeType8::JR_COND_IMM8: {  // 2 cycles
+        case JR_COND_IMM8: {  // 2 cycles
             r8(r8_addr) = byte;
             break;
         }
