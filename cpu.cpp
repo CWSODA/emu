@@ -7,12 +7,15 @@ clock_cycles CPU::parse_byte(uint8_t byte) {
     switch (op_state) {
         case OpState::READY: {
             opcode = byte;
-            parse_opcode();
-            break;
+            return parse_opcode();
         }
         case OpState::IMM8: {
             op_state = OpState::READY;
             return handle_imm8(byte);
+        }
+        case OpState::CB: {
+            op_state = OpState::READY;
+            return handle_cb(byte);
         }
         case OpState::IMM16L: {
             imm16 = byte;
@@ -28,7 +31,112 @@ clock_cycles CPU::parse_byte(uint8_t byte) {
 }
 
 clock_cycles CPU::parse_opcode() {
-    // match variable opcodes first
+    // match static opcodes first
+    switch (opcode) {
+        case NOP: {
+            return 1;
+        }
+        case HALT: {
+            printf("Halting program!\n");
+            while (true);
+        }
+        /* ------------------------ imm8 ------------------------ */
+        // reg A arithmetic
+        case ADD_A_IMM8:
+        case ADC_A_IMM8:
+        case SUB_A_IMM8:
+        case SBC_A_IMM8:
+        case AND_A_IMM8:
+        case XOR_A_IMM8:
+        case OR_A_IMM8:
+        case CP_A_IMM8:
+        // jumps
+        case JR_IMM8:
+        case JR_NZ_IMM8:
+        case JR_Z_IMM8:
+        case JR_NC_IMM8:
+        case JR_C_IMM8:
+        // other
+        case STOP_IMM8: {
+            op_state = OpState::IMM8;
+            return 0;
+        }
+        /* ------------------------ imm16 ----------------------- */
+        case JP_NZ_IMM16:
+        case JP_Z_IMM16:
+        case JP_NC_IMM16:
+        case JP_C_IMM16:
+        case JP_IMM16:
+        case CALL_IMM16:
+        case LD_IMM16_SP: {
+            op_state = OpState::IMM16L;
+            return 0;
+        }
+        /* ---------------- reg A stuff and flags --------------- */
+        case RLCA: {
+            set_flags_znhc(0, 0, 0, reg_a & 0b1000'000);
+            reg_a = (reg_a << 1) | flags.c;
+            return 1;
+        }
+        case RRCA: {
+            set_flags_znhc(0, 0, 0, reg_a & 0b1);
+            reg_a = (reg_a >> 1) | (flags.c << 7);
+            return 1;
+        }
+        case RLA: {
+            bool msb = reg_a & 0b1000'0000;
+            reg_a = (reg_a << 1) | flags.c;
+            set_flags_znhc(0, 0, 0, msb);
+            return 1;
+        }
+        case RRA: {
+            bool lsb = reg_a & 1;
+            reg_a = (reg_a >> 1) | (flags.c << 7);
+            set_flags_znhc(0, 0, 0, lsb);
+            return 1;
+        }
+        case DAA: {
+            printf("DAA not yet implemented!\n");
+            return 1;
+        }
+        case CPL: {
+            reg_a = ~reg_a;
+            flags.n = 1;
+            flags.h = 1;
+            return 1;
+        }
+        case SCF: {
+            set_flags_nhc(0, 0, 1);
+            return 1;
+        }
+        case CFF: {
+            set_flags_nhc(0, 0, !flags.c);
+            return 1;
+        }
+        /* ----------------------- block3 ----------------------- */
+        case RET_NZ:
+            return ret_if(!flags.z);
+        case RET_Z:
+            return ret_if(flags.z);
+        case RET_NC:
+            return ret_if(!flags.c);
+        case RET_C:
+            return ret_if(flags.c);
+        case RET: {
+            ret();
+            return 4;
+        }
+        case RETI: {
+            ret();
+            printf("Interrupts not yet enabled!\n");
+            return 4;
+        }
+        case JP_HL: {
+            PC = get_r16(2);  // copy HL to PC
+            return 1;
+        }
+    }
+    // match variable opcodes
     switch (opcode >> 6) {
         case 0: {
             parse_block0();
@@ -52,7 +160,6 @@ clock_cycles CPU::parse_opcode() {
             break;
         }
     }
-    switch (opcode) {}
 }
 
 void CPU::parse_8bit_arith() {
@@ -93,7 +200,7 @@ void CPU::parse_8bit_arith() {
     }
 }
 
-// returns cycles used
+// used to parse variable opcodes
 clock_cycles CPU::parse_block0() {
     uint8_t last_three = (opcode & 0b111);
     uint8_t last_nibble = (opcode & 0b1111);
@@ -108,49 +215,6 @@ clock_cycles CPU::parse_block0() {
         }
         case 0b000'11'000: {  // jr imm8
             op_state = OpState::IMM8;
-            break;
-        }
-        /* ---------------- reg a stuff and flags --------------- */
-        case 0b0000'0111: {  // rlca
-            set_flags_znhc(0, 0, 0, reg_a & 0b1000'000);
-            reg_a <<= 1;
-            break;
-        }
-        case 0b0000'1111: {  // rrca
-            set_flags_znhc(0, 0, 0, reg_a & 0b1);
-            reg_a >>= 1;
-            break;
-        }
-        case 0b0001'0111: {  // rla
-            bool msb = reg_a & 0b1000'0000;
-            reg_a <<= 1;
-            reg_a += flags.c;
-            set_flags_znhc(0, 0, 0, msb);
-            break;
-        }
-        case 0b0001'1111: {  // rra
-            bool lsb = reg_a & 1;
-            reg_a >>= 1;
-            reg_a += flags.c << 8;
-            set_flags_znhc(0, 0, 0, lsb);
-            break;
-        }
-        case 0b0010'0111: {  // daa (decimal adjust accumulator)
-            printf("DAA not yet implemented!\n");
-            break;
-        }
-        case 0b0010'1111: {  // cpl (basically NOT)
-            reg_a = ~reg_a;
-            flags.n = 1;
-            flags.h = 1;
-            break;
-        }
-        case 0b0011'0111: {  // scf (set carry flag)
-            set_flags_nhc(0, 0, 1);
-            break;
-        }
-        case 0b0011'1111: {  // ccf (compliment carry flag)
-            set_flags_nhc(0, 0, !flags.c);
             break;
         }
         // rest have variable stuff
@@ -238,32 +302,60 @@ clock_cycles CPU::parse_block3() {
 
 clock_cycles CPU::handle_imm16() {
     switch (opcode) {
-        case LD_IMM16_SP: {  // 5 cycles
+        case LD_IMM16_SP: {
             memory[imm16] = SP & 0xff;
             memory[imm16 + 1] = SP >> 8;
-            break;
+            return 5;
         }
-        case LD_r16_IMM16: {  // 3 cycles
+        case LD_r16_IMM16: {
             set_r16(r16_addr, imm16);
-            break;
+            return 3;
         }
+
+        case JP_IMM16: {
+            PC = imm16;
+            return 4;
+        }
+        case JP_NZ_IMM16:
+            return jp_if(!flags.z, imm16);
+        case JP_Z_IMM16:
+            return jp_if(flags.z, imm16);
+        case JP_NC_IMM16:
+            return jp_if(!flags.c, imm16);
+        case JP_C_IMM16:
+            return jp_if(flags.c, imm16);
+
+        case CALL_IMM16: {
+            call(imm16);
+            return 6;
+        }
+        case CALL_NZ_IMM16:
+            return call_if(!flags.z, imm16);
+        case CALL_Z_IMM16:
+            return call_if(flags.z, imm16);
+        case CALL_NC_IMM16:
+            return call_if(!flags.c, imm16);
+        case CALL_C_IMM16:
+            return call_if(flags.c, imm16);
     }
 }
 
 clock_cycles CPU::handle_imm8(uint8_t byte) {
     switch (opcode) {
-        case JR_IMM8: {  // jr imm8
+        /* ------------------------- jr ------------------------- */
+        case JR_IMM8: {
             PC = PC + (int16_t)byte;
-            break;
+            return 3;
         }
-        case LD_r8_IMM8: {  // jr cond imm8
-            // conditions nz, z, nc, c
-            if ((r8_addr == 0 && !flags.z) | (r8_addr == 1 && flags.z) |
-                (r8_addr == 2 && !flags.c) | (r8_addr == 3 && flags.c))
-                PC = PC + (int16_t)byte;
-            break;
-        }
-        case JR_COND_IMM8: {  // 2 cycles
+        case JR_NZ_IMM8:
+            return jr_if(!flags.z, byte);
+        case JR_Z_IMM8:
+            return jr_if(flags.z, byte);
+        case JR_NC_IMM8:
+            return jr_if(!flags.c, byte);
+        case JR_C_IMM8:
+            return jr_if(flags.c, byte);
+        case LD_r8_IMM8: {  // 2 cycles
             r8(r8_addr) = byte;
             return 2;
         }

@@ -13,11 +13,7 @@ uint8_t& r8(uint8_t idx) {
     return reg8[idx];
 }
 
-// uint16_t AF;
-// uint16_t BC;
-// uint16_t DE;
-// uint16_t HL;
-// bc, de, hl, sp
+// registers in order: bc, de, hl, sp
 uint16_t get_r16(uint8_t idx) {
     switch (idx) {
         case 0:
