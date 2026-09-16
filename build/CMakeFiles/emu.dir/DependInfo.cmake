@@ -8,10 +8,10 @@ set(CMAKE_DEPENDS_LANGUAGES
 
 # The set of dependency files which are needed:
 set(CMAKE_DEPENDS_DEPENDENCY_FILES
+  "/Users/admin/projects/emu/calc_flag_and_ops.cpp" "CMakeFiles/emu.dir/calc_flag_and_ops.cpp.o" "gcc" "CMakeFiles/emu.dir/calc_flag_and_ops.cpp.o.d"
   "/Users/admin/projects/emu/cpu.cpp" "CMakeFiles/emu.dir/cpu.cpp.o" "gcc" "CMakeFiles/emu.dir/cpu.cpp.o.d"
   "/Users/admin/projects/emu/main.cpp" "CMakeFiles/emu.dir/main.cpp.o" "gcc" "CMakeFiles/emu.dir/main.cpp.o.d"
   "/Users/admin/projects/emu/memory.cpp" "CMakeFiles/emu.dir/memory.cpp.o" "gcc" "CMakeFiles/emu.dir/memory.cpp.o.d"
-  "/Users/admin/projects/emu/registers.cpp" "CMakeFiles/emu.dir/registers.cpp.o" "gcc" "CMakeFiles/emu.dir/registers.cpp.o.d"
   )
 
 # Targets to which this target links which contain Fortran sources.

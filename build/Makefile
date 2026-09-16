@@ -129,6 +129,30 @@ emu/fast:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/emu.dir/build.make CMakeFiles/emu.dir/build
 .PHONY : emu/fast
 
+calc_flag_and_ops.o: calc_flag_and_ops.cpp.o
+.PHONY : calc_flag_and_ops.o
+
+# target to build an object file
+calc_flag_and_ops.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/emu.dir/build.make CMakeFiles/emu.dir/calc_flag_and_ops.cpp.o
+.PHONY : calc_flag_and_ops.cpp.o
+
+calc_flag_and_ops.i: calc_flag_and_ops.cpp.i
+.PHONY : calc_flag_and_ops.i
+
+# target to preprocess a source file
+calc_flag_and_ops.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/emu.dir/build.make CMakeFiles/emu.dir/calc_flag_and_ops.cpp.i
+.PHONY : calc_flag_and_ops.cpp.i
+
+calc_flag_and_ops.s: calc_flag_and_ops.cpp.s
+.PHONY : calc_flag_and_ops.s
+
+# target to generate assembly for a file
+calc_flag_and_ops.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/emu.dir/build.make CMakeFiles/emu.dir/calc_flag_and_ops.cpp.s
+.PHONY : calc_flag_and_ops.cpp.s
+
 cpu.o: cpu.cpp.o
 .PHONY : cpu.o
 
@@ -201,30 +225,6 @@ memory.cpp.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/emu.dir/build.make CMakeFiles/emu.dir/memory.cpp.s
 .PHONY : memory.cpp.s
 
-registers.o: registers.cpp.o
-.PHONY : registers.o
-
-# target to build an object file
-registers.cpp.o:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/emu.dir/build.make CMakeFiles/emu.dir/registers.cpp.o
-.PHONY : registers.cpp.o
-
-registers.i: registers.cpp.i
-.PHONY : registers.i
-
-# target to preprocess a source file
-registers.cpp.i:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/emu.dir/build.make CMakeFiles/emu.dir/registers.cpp.i
-.PHONY : registers.cpp.i
-
-registers.s: registers.cpp.s
-.PHONY : registers.s
-
-# target to generate assembly for a file
-registers.cpp.s:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/emu.dir/build.make CMakeFiles/emu.dir/registers.cpp.s
-.PHONY : registers.cpp.s
-
 # Help Target
 help:
 	@echo "The following are some of the valid targets for this Makefile:"
@@ -234,6 +234,9 @@ help:
 	@echo "... edit_cache"
 	@echo "... rebuild_cache"
 	@echo "... emu"
+	@echo "... calc_flag_and_ops.o"
+	@echo "... calc_flag_and_ops.i"
+	@echo "... calc_flag_and_ops.s"
 	@echo "... cpu.o"
 	@echo "... cpu.i"
 	@echo "... cpu.s"
@@ -243,9 +246,6 @@ help:
 	@echo "... memory.o"
 	@echo "... memory.i"
 	@echo "... memory.s"
-	@echo "... registers.o"
-	@echo "... registers.i"
-	@echo "... registers.s"
 .PHONY : help
 
 

@@ -114,26 +114,26 @@ CMakeFiles/emu.dir/memory.cpp.s: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling CXX source to assembly CMakeFiles/emu.dir/memory.cpp.s"
 	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /Users/admin/projects/emu/memory.cpp -o CMakeFiles/emu.dir/memory.cpp.s
 
-CMakeFiles/emu.dir/registers.cpp.o: CMakeFiles/emu.dir/flags.make
-CMakeFiles/emu.dir/registers.cpp.o: /Users/admin/projects/emu/registers.cpp
-CMakeFiles/emu.dir/registers.cpp.o: CMakeFiles/emu.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/Users/admin/projects/emu/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_4) "Building CXX object CMakeFiles/emu.dir/registers.cpp.o"
-	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/emu.dir/registers.cpp.o -MF CMakeFiles/emu.dir/registers.cpp.o.d -o CMakeFiles/emu.dir/registers.cpp.o -c /Users/admin/projects/emu/registers.cpp
+CMakeFiles/emu.dir/calc_flag_and_ops.cpp.o: CMakeFiles/emu.dir/flags.make
+CMakeFiles/emu.dir/calc_flag_and_ops.cpp.o: /Users/admin/projects/emu/calc_flag_and_ops.cpp
+CMakeFiles/emu.dir/calc_flag_and_ops.cpp.o: CMakeFiles/emu.dir/compiler_depend.ts
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/Users/admin/projects/emu/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_4) "Building CXX object CMakeFiles/emu.dir/calc_flag_and_ops.cpp.o"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/emu.dir/calc_flag_and_ops.cpp.o -MF CMakeFiles/emu.dir/calc_flag_and_ops.cpp.o.d -o CMakeFiles/emu.dir/calc_flag_and_ops.cpp.o -c /Users/admin/projects/emu/calc_flag_and_ops.cpp
 
-CMakeFiles/emu.dir/registers.cpp.i: cmake_force
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Preprocessing CXX source to CMakeFiles/emu.dir/registers.cpp.i"
-	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /Users/admin/projects/emu/registers.cpp > CMakeFiles/emu.dir/registers.cpp.i
+CMakeFiles/emu.dir/calc_flag_and_ops.cpp.i: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Preprocessing CXX source to CMakeFiles/emu.dir/calc_flag_and_ops.cpp.i"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /Users/admin/projects/emu/calc_flag_and_ops.cpp > CMakeFiles/emu.dir/calc_flag_and_ops.cpp.i
 
-CMakeFiles/emu.dir/registers.cpp.s: cmake_force
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling CXX source to assembly CMakeFiles/emu.dir/registers.cpp.s"
-	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /Users/admin/projects/emu/registers.cpp -o CMakeFiles/emu.dir/registers.cpp.s
+CMakeFiles/emu.dir/calc_flag_and_ops.cpp.s: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling CXX source to assembly CMakeFiles/emu.dir/calc_flag_and_ops.cpp.s"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /Users/admin/projects/emu/calc_flag_and_ops.cpp -o CMakeFiles/emu.dir/calc_flag_and_ops.cpp.s
 
 # Object files for target emu
 emu_OBJECTS = \
 "CMakeFiles/emu.dir/main.cpp.o" \
 "CMakeFiles/emu.dir/cpu.cpp.o" \
 "CMakeFiles/emu.dir/memory.cpp.o" \
-"CMakeFiles/emu.dir/registers.cpp.o"
+"CMakeFiles/emu.dir/calc_flag_and_ops.cpp.o"
 
 # External object files for target emu
 emu_EXTERNAL_OBJECTS =
@@ -141,7 +141,7 @@ emu_EXTERNAL_OBJECTS =
 emu: CMakeFiles/emu.dir/main.cpp.o
 emu: CMakeFiles/emu.dir/cpu.cpp.o
 emu: CMakeFiles/emu.dir/memory.cpp.o
-emu: CMakeFiles/emu.dir/registers.cpp.o
+emu: CMakeFiles/emu.dir/calc_flag_and_ops.cpp.o
 emu: CMakeFiles/emu.dir/build.make
 emu: CMakeFiles/emu.dir/link.txt
 	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --bold --progress-dir=/Users/admin/projects/emu/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_5) "Linking CXX executable emu"

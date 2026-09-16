@@ -7,7 +7,6 @@ set(SOURCE_FILES
     main.cpp 
     cpu.cpp 
     memory.cpp
-    registers.cpp
     calc_flag_and_ops.cpp
 )
 
