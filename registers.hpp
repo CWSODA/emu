@@ -65,13 +65,25 @@ struct Registers {
     uint16_t get_bc() { return (reg8[0] << 8) + reg8[1]; }
     uint16_t get_de() { return (reg8[2] << 8) + reg8[3]; }
 
+    bool has_jump_flag = false;
+    uint16_t get_PC() { return PC; }
     void set_PC(uint16_t addr) {
         PC = addr;
         printf("Setting PC to: 0x%04X\n", PC);
+        has_jump_flag = true;
     }
-    uint16_t get_PC() { return PC; }
-    void inc_PC() { PC++; }
-    void signed_offset_PC(uint8_t byte) { PC = PC + (int16_t)byte; }
+    void signed_offset_PC(uint8_t byte) {
+        PC = PC + (int8_t)byte;
+        printf("Setting PC to: 0x%04X\n", PC);
+        // has_jump_flag = true;
+    }
+    void check_inc_PC() {
+        if (has_jump_flag) {
+            has_jump_flag = false;
+        } else {
+            PC++;
+        }
+    }
 
    private:
     uint16_t PC = 0x0100;

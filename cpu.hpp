@@ -5,8 +5,16 @@
 #include <iostream>
 #include <iomanip>
 
+#include "file_reader.hpp"
 #include "registers.hpp"
 #include "opcodes.hpp"
+
+#define DEBUG_OPCODE
+#ifdef DEBUG_OPCODE
+#define CODE(...) printf(">>> %s\n", __VA_ARGS__)
+#else
+#define CODE(...)
+#endif
 
 // F = flags register
 struct Flags {
@@ -20,14 +28,19 @@ typedef uint8_t clock_cycles;
 constexpr size_t SOME_LARGE_NUMBER = 5e3;
 class CPU {
    public:
-    void run(std::vector<uint8_t> data) {
-        auto byte = data[registers.get_PC()];
-        // printf("Parsing byte %s\n", cvt_binary(byte).c_str());
+    CPU() {}
+    void load_ROM(std::string path) { load_ROM_from_path(path.c_str(), memory); }
+    void run() {
+        auto byte = memory[registers.get_PC()];
+
+#ifdef DEBUG_OPCODE
         std::cout << "PC=0x" << std::hex << std::setw(4) << std::setfill('0') << registers.get_PC()
                   << " || opcode=0x" << std::setw(2) << static_cast<int>(byte) << " | "
                   << cvt_binary(byte) << '\n';
+#endif
+
         parse_byte(byte);
-        registers.inc_PC();
+        registers.check_inc_PC();
     }
     clock_cycles parse_byte(uint8_t byte);
 
@@ -72,7 +85,7 @@ class CPU {
     uint8_t r16_addr;  // for imm16 stuff
     uint8_t r8_addr;   // for imm8 stuff, also used for jr cond
 
-    uint8_t memory[SOME_LARGE_NUMBER];
+    uint8_t memory[0xff'ff + 1];
     uint16_t read_mem16(uint16_t addr) { return memory[addr] + (memory[addr + 1] << 8); }
     void ret() {
         registers.set_PC(read_mem16(registers.SP));

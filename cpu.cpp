@@ -3,13 +3,6 @@
 
 #include "cpu.hpp"
 
-#define DEBUG_OPCODE
-#ifdef DEBUG_OPCODE
-#define CODE(...) printf(">>> %s\n", __VA_ARGS__)
-#else
-#define CODE(...)
-#endif
-
 clock_cycles CPU::parse_byte(uint8_t byte) {
     switch (op_state) {
         case OpState::READY: {
@@ -72,7 +65,6 @@ clock_cycles CPU::parse_opcode() {
         case ADD_SP_IMM8:
         case LD_HL_SP_IMM8:
         case STOP_IMM8: {
-            CODE("IMM8");
             op_state = OpState::IMM8;
             return 0;
         }
@@ -86,7 +78,6 @@ clock_cycles CPU::parse_opcode() {
         case LD_IMM16_A:
         case LD_A_IMM16:
         case LD_IMM16_SP: {
-            CODE("IMM16");
             op_state = OpState::IMM16L;
             return 0;
         }
@@ -181,7 +172,6 @@ clock_cycles CPU::parse_opcode() {
     // match variable opcodes
     switch (opcode >> 6) {
         case 0: {
-            puts("block0");
             return parse_block0();
         }
         case 0b01: {  // 8-bit reg to reg load
@@ -195,12 +185,11 @@ clock_cycles CPU::parse_opcode() {
             return 1;
         }
         case 0b10: {  // 8-bit arithmetic on reg A
-            puts("artih");
+            puts("arith");
             parse_8bit_arith();
             return 1;
         }
         case 0b11: {
-            puts("block3");
             return parse_block3();
         }
     }
@@ -259,28 +248,41 @@ void CPU::parse_8bit_arith() {
 clock_cycles CPU::parse_block0() {
     uint8_t last_three = (opcode & 0b111);
     uint8_t last_nibble = (opcode & 0b1111);
+    /* ---------------- opcodes with IMM8/16 ---------------- */
+    if (last_three == 0b110) {  // ld r8, imm8
+        op_state = OpState::IMM8;
+        r8_addr = opcode >> 3;
+        opcode = LD_r8_IMM8;
+        return 0;
+    }
+    if (last_nibble == 0b0001) {  // ld r16, imm16
+        op_state = OpState::IMM16L;
+        r16_addr = opcode >> 4;
+        opcode = LD_r16_IMM16;
+        return 0;
+    }
+    /* -------------- regular one pass opcodes -------------- */
     if (last_three == 0b100) {  // inc r8
+        CODE("inc r8");
         uint8_t reg = opcode >> 3;
         flags.h = (registers.r8(reg) & 0b1111) == 0b1111;  // overflow into bit 4
         registers.r8(reg) += 1;
         flags.z = (registers.r8(reg) == 0);
         flags.n = false;
-    } else if (last_three == 0b101) {  // dec r8
+        printf("Reg inc (%u): %02X\n", reg, registers.r8(reg));
+        return 1;
+    }
+    if (last_three == 0b101) {  // dec r8
+        CODE("dec r8");
         uint8_t reg = opcode >> 3;
         flags.h = (registers.r8(reg) & 0b1111) == 0;  // borrow from bit 4
         registers.r8(reg) -= 1;
         flags.z = (registers.r8(reg) == 0);
         flags.n = true;
-    } else if (last_three == 0b110) {  // ld r8, imm8
-        op_state = OpState::IMM8;
-        r8_addr = opcode >> 3;
-    } else if (last_three == 0b000 && (opcode & 0b0010'0000)) {  // jr cond, imm8
-        op_state = OpState::IMM8;
-        r8_addr = (opcode >> 3) & 0b11;
-    } else if (last_nibble == 0b0001) {  // ld r16, imm16
-        op_state = OpState::IMM16L;
-        r16_addr = opcode >> 4;
-    } else if (last_nibble == 0b0010) {  // ld [r16mem], a
+        printf("Reg dec (%u): %02X\n", reg, registers.r8(reg));
+        return 1;
+    }
+    if (last_nibble == 0b0010) {  // ld [r16mem], a
         // r16mem: bc, de, hl+, hl-
         CODE("ld [r16mem], a");
         uint8_t addr = opcode >> 4;
@@ -293,8 +295,11 @@ clock_cycles CPU::parse_block0() {
             memory[hl] = registers.a();
             registers.set_hl(hl + (addr == 2 ? 1 : -1));  // incr / decr
         }
-    } else if (last_nibble == 0b1010) {  // ld a, [r16mem]
+        return 2;
+    }
+    if (last_nibble == 0b1010) {  // ld a, [r16mem]
         // r16mem: bc, de, hl+, hl-
+        CODE("ld a, [r16mem]");
         uint8_t addr = opcode >> 4;
         if (addr == 0)
             registers.a() = memory[registers.get_bc()];
@@ -305,23 +310,32 @@ clock_cycles CPU::parse_block0() {
             registers.a() = memory[hl];
             registers.set_hl(hl + (addr == 2 ? 1 : -1));  // incr / decr
         }
-
-        // 16-bit arithmetic
-    } else if (last_nibble == 0b0011) {  // inc r16, 2 cycles
+        return 2;
+    }
+    // 16-bit arithmetic
+    if (last_nibble == 0b0011) {  // inc r16
+        CODE("inc r16");
         uint8_t addr = opcode >> 4;
         registers.set_r16(addr, registers.get_r16(addr) + 1);
-    } else if (last_nibble == 0b1011) {  // dec r16, 2 cycles
+        return 2;
+    }
+    if (last_nibble == 0b1011) {  // dec r16, 2 cycles
+        CODE("dec r16");
         uint8_t addr = opcode >> 4;
         registers.set_r16(addr, registers.get_r16(addr) - 1);
-    } else if (last_nibble == 0b1001) {  // add hl, r16, 2 cycles
+        return 2;
+    }
+    if (last_nibble == 0b1001) {  // add hl, r16, 2 cycles
+        CODE("add hl, r16");
         uint16_t hl = registers.get_hl();
         uint16_t val = registers.get_r16(opcode >> 4);
         flags.n = false;
         flags.h = (hl & 0xfff + val & 0xfff) > 0xfff;  // bit 11 overflow
         flags.c = hl > (0xff'ff - val);                // bit 15 overflow
         registers.set_hl(hl + val);
+        return 2;
     }
-    printf("Error parsing block0 opcode: %02X\n", opcode);
+    printf("Error parsing block0 opcode: 0x%02X\n", opcode);
     return 0;
 }
 
@@ -384,6 +398,7 @@ clock_cycles CPU::handle_imm16() {
 
         /* ------------------------ call ------------------------ */
         case CALL_IMM16: {
+            CODE("call imm16");
             call(imm16);
             return 6;
         }
@@ -398,43 +413,58 @@ clock_cycles CPU::handle_imm16() {
 
         /* ------------------------ load ------------------------ */
         case LD_IMM16_SP: {
+            CODE("ld imm16, sp");
             memory[imm16] = registers.SP & 0xff;
             memory[imm16 + 1] = registers.SP >> 8;
             return 5;
         }
         case LD_r16_IMM16: {
+            CODE("ld r16, imm16");
             registers.set_r16(r16_addr, imm16);
             return 3;
         }
         case LD_IMM16_A: {
+            CODE("ld imm16, a");
             memory[imm16] = registers.a();
             return 4;
         }
         case LD_A_IMM16: {
+            CODE("ld a, imm16");
             registers.a() = memory[imm16];
             return 4;
         }
     }
-    printf("Error handling imm16 opcode: %02X\n", opcode);
+    printf("Error handling imm16 opcode: 0x%02X\n", opcode);
     return 0;
 }
 
 clock_cycles CPU::handle_imm8(uint8_t byte) {
     switch (opcode) {
+        case STOP_IMM8: {
+            CODE("stop");
+            return 0;
+        }
         /* ------------------------- jr ------------------------- */
         case JR_IMM8: {
+            CODE("jr imm8");
             registers.signed_offset_PC(byte);
             return 3;
         }
         case JR_NZ_IMM8:
+            CODE("jr nz, imm8");
+            printf("Flag Z: %u\n", flags.z);
             return jr_if(!flags.z, byte);
         case JR_Z_IMM8:
+            CODE("jr z, imm8");
             return jr_if(flags.z, byte);
         case JR_NC_IMM8:
+            CODE("jr nc, imm8");
             return jr_if(!flags.c, byte);
         case JR_C_IMM8:
+            CODE("jr c, imm8");
             return jr_if(flags.c, byte);
         case LD_r8_IMM8: {  // 2 cycles
+            CODE("ld r8, imm8");
             registers.r8(r8_addr) = byte;
             return 2;
         }
@@ -490,7 +520,7 @@ clock_cycles CPU::handle_imm8(uint8_t byte) {
             return 3;
         }
     }
-    printf("Error handling imm8 opcode: %02X\n", opcode);
+    printf("Error handling imm8 opcode: 0x%02X\n", opcode);
     return 0;
 }
 

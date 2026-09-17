@@ -75,6 +75,6 @@ enum OpCodeType {
     EI = 0b1111'1011,  // enable interrupt, only after next instruction!
 
     /* ------------------ variable opcodes ------------------ */
-    LD_r8_IMM8 = 255 + 1,
-    LD_r16_IMM16,
+    LD_r8_IMM8 = 0b00'000'110,
+    LD_r16_IMM16 = 0b00'00'0001,
 };
