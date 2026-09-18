@@ -5,8 +5,8 @@ file(REMOVE_RECURSE
   "CMakeFiles/emu.dir/cpu.cpp.o.d"
   "CMakeFiles/emu.dir/main.cpp.o"
   "CMakeFiles/emu.dir/main.cpp.o.d"
-  "CMakeFiles/emu.dir/memory.cpp.o"
-  "CMakeFiles/emu.dir/memory.cpp.o.d"
+  "CMakeFiles/emu.dir/mem.cpp.o"
+  "CMakeFiles/emu.dir/mem.cpp.o.d"
   "emu"
   "emu.pdb"
 )

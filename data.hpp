@@ -3,10 +3,11 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string>
+#include <fstream>
 
-struct Registers {
-    // 8-bit registers
-    uint8_t reg8[7];  // b, c, d, e, h, l, a registers
+// stores and handles register/memory data
+struct Data {
+    Data() {}
 
     // 16-bit
     uint16_t SP;
@@ -16,7 +17,7 @@ struct Registers {
 
     uint8_t& r8(uint8_t idx) {
         if (idx == 6) {
-            puts("Not yet implemented [hl] memory reading!\n");
+            return memory[get_hl()];
         }
         if (idx == 7) return a();
         return reg8[idx];
@@ -85,8 +86,24 @@ struct Registers {
         }
     }
 
+    uint8_t read_mem(uint16_t addr);
+    void set_mem(uint16_t addr, uint8_t val);
+    void load_ROM_from_path(const char* filename) {
+        std::ifstream file(filename, std::ios::binary);
+        if (!file) throw std::runtime_error("Cannot read ROM file!");
+
+        file.seekg(0, file.end);  // go to end of file
+        size_t ROM_size = file.tellg();
+
+        file.seekg(0, file.beg);  // back to start
+        file.read((char*)memory, ROM_size);
+    }
+
    private:
+    // 8-bit registers
+    uint8_t reg8[7];  // b, c, d, e, h, l, a registers
     uint16_t PC = 0x0100;
+    uint8_t memory[0xff'ff + 1];
 };
 
 inline std::string cvt_binary(uint8_t byte) {

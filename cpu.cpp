@@ -2,6 +2,24 @@
 #include <stdio.h>
 
 #include "cpu.hpp"
+#include "logger.hpp"
+
+bool CPU::run() {
+    auto byte = data.read_mem(data.get_PC());
+
+#ifdef DEBUG_OPCODE
+    std::cout << "PC=0x" << std::hex << std::setw(4) << std::setfill('0') << data.get_PC()
+              << " || opcode=0x" << std::setw(2) << static_cast<int>(byte) << " | "
+              << cvt_binary(byte) << '\n';
+#endif
+
+    auto cycles = parse_byte(byte);
+    data.check_inc_PC();
+
+    static int count = 0;
+    if (cycles == 255) count++;
+    return (count < 1);  // returns false for halt
+}
 
 clock_cycles CPU::parse_byte(uint8_t byte) {
     switch (op_state) {
@@ -41,7 +59,7 @@ clock_cycles CPU::parse_opcode() {
         }
         case HALT: {
             CODE("halt");
-            while (true);
+            return 255;
         }
         /* ------------------------ imm8 ------------------------ */
         // reg A arithmetic
@@ -84,27 +102,27 @@ clock_cycles CPU::parse_opcode() {
         /* ---------------- reg A stuff and flags --------------- */
         case RLCA: {
             CODE("RLCA");
-            set_flags_znhc(0, 0, 0, registers.a() & 0b1000'000);
-            registers.a() = (registers.a() << 1) | flags.c;
+            set_flags_znhc(0, 0, 0, data.a() & 0b1000'000);
+            data.a() = (data.a() << 1) | flags.c;
             return 1;
         }
         case RRCA: {
             CODE("RRCA");
-            set_flags_znhc(0, 0, 0, registers.a() & 0b1);
-            registers.a() = (registers.a() >> 1) | (flags.c << 7);
+            set_flags_znhc(0, 0, 0, data.a() & 0b1);
+            data.a() = (data.a() >> 1) | (flags.c << 7);
             return 1;
         }
         case RLA: {
             CODE("RLA");
-            bool msb = registers.a() & 0b1000'0000;
-            registers.a() = (registers.a() << 1) | flags.c;
+            bool msb = data.a() & 0b1000'0000;
+            data.a() = (data.a() << 1) | flags.c;
             set_flags_znhc(0, 0, 0, msb);
             return 1;
         }
         case RRA: {
             CODE("RRA");
-            bool lsb = registers.a() & 1;
-            registers.a() = (registers.a() >> 1) | (flags.c << 7);
+            bool lsb = data.a() & 1;
+            data.a() = (data.a() >> 1) | (flags.c << 7);
             set_flags_znhc(0, 0, 0, lsb);
             return 1;
         }
@@ -114,7 +132,7 @@ clock_cycles CPU::parse_opcode() {
         }
         case CPL: {
             CODE("CPL");
-            registers.a() = ~registers.a();
+            data.a() = ~data.a();
             flags.n = 1;
             flags.h = 1;
             return 1;
@@ -131,40 +149,51 @@ clock_cycles CPU::parse_opcode() {
         }
         /* ----------------------- block3 ----------------------- */
         case RET_NZ:
+            CODE("ret nz");
             return ret_if(!flags.z);
         case RET_Z:
+            CODE("ret z");
             return ret_if(flags.z);
         case RET_NC:
+            CODE("ret nc");
             return ret_if(!flags.c);
         case RET_C:
+            CODE("ret c");
             return ret_if(flags.c);
         case RET: {
+            CODE("ret");
             ret();
             return 4;
         }
         case RETI: {
+            CODE("reti");
             ret();
             printf("Interrupts not yet enabled!\n");
             return 4;
         }
         case JP_HL: {
-            registers.set_PC(registers.get_r16(2));  // copy HL to registers.PC
+            CODE("jp hl");
+            data.set_PC(data.get_r16(2));  // copy HL to data.PC
             return 1;
         }
         /* ------------------------- ld ------------------------- */
         case LDH_C_A: {
-            memory[0xff00 + registers.c()] = registers.a();
+            CODE("ldh c, a");
+            data.set_mem(0xff00 + data.c(), data.a());
             return 2;
         }
         case LDH_A_C: {
-            registers.a() = memory[0xff00 + registers.c()];
+            CODE("ldh a, c");
+            data.a() = data.read_mem(0xff00 + data.c());
             return 2;
         }
         case DI: {
+            CODE("di");
             interrupt_flag = false;
             return 1;
         }
         case EI: {
+            CODE("ei");
             set_EI = true;
             return 1;
         }
@@ -181,7 +210,7 @@ clock_cycles CPU::parse_opcode() {
             CODE("ld r8, r8");
             uint8_t dest = (opcode >> 3) & 0b111;
             uint8_t src = opcode & 0b111;
-            registers.r8(dest) = registers.r8(src);
+            data.r8(dest) = data.r8(src);
             return 1;
         }
         case 0b10: {  // 8-bit arithmetic on reg A
@@ -202,42 +231,42 @@ void CPU::parse_8bit_arith() {
     switch (opcode >> 3) {
         case 0b10'000: {  // add
             CODE("add a, r8");
-            registers.a() = calc_add8(registers.a(), registers.r8(reg));
+            data.a() = calc_add8(data.a(), data.r8(reg));
             break;
         }
         case 0b10'001: {  // adc
             CODE("adc a, r8");
-            registers.a() = calc_adc8(registers.a(), registers.r8(reg));
+            data.a() = calc_adc8(data.a(), data.r8(reg));
             break;
         }
         case 0b10'010: {  // sub
             CODE("sub a, r8");
-            registers.a() = calc_sub8(registers.a(), registers.r8(reg));
+            data.a() = calc_sub8(data.a(), data.r8(reg));
             break;
         }
         case 0b10'011: {  // sbc
             CODE("sbc a, r8");
-            registers.a() = calc_sbc8(registers.a(), registers.r8(reg));
+            data.a() = calc_sbc8(data.a(), data.r8(reg));
             break;
         }
         case 0b10'100: {  // and
             CODE("and a, r8");
-            registers.a() = calc_and8(registers.a(), registers.r8(reg));
+            data.a() = calc_and8(data.a(), data.r8(reg));
             break;
         }
         case 0b10'101: {  // xor
             CODE("xor a, r8");
-            registers.a() = calc_xor8(registers.a(), registers.r8(reg));
+            data.a() = calc_xor8(data.a(), data.r8(reg));
             break;
         }
         case 0b10'110: {  // or
             CODE("or a, r8");
-            registers.a() = calc_or8(registers.a(), registers.r8(reg));
+            data.a() = calc_or8(data.a(), data.r8(reg));
             break;
         }
         case 0b10'111: {  // cp (compare, subtracts without updating register)
             CODE("cp a, r8");
-            calc_sub8(registers.a(), registers.r8(reg));
+            calc_sub8(data.a(), data.r8(reg));
             break;
         }
     }
@@ -265,21 +294,21 @@ clock_cycles CPU::parse_block0() {
     if (last_three == 0b100) {  // inc r8
         CODE("inc r8");
         uint8_t reg = opcode >> 3;
-        flags.h = (registers.r8(reg) & 0b1111) == 0b1111;  // overflow into bit 4
-        registers.r8(reg) += 1;
-        flags.z = (registers.r8(reg) == 0);
+        flags.h = (data.r8(reg) & 0b1111) == 0b1111;  // overflow into bit 4
+        data.r8(reg) += 1;
+        flags.z = (data.r8(reg) == 0);
         flags.n = false;
-        printf("Reg inc (%u): %02X\n", reg, registers.r8(reg));
+        printf("Reg inc (%u): %02X\n", reg, data.r8(reg));
         return 1;
     }
     if (last_three == 0b101) {  // dec r8
         CODE("dec r8");
         uint8_t reg = opcode >> 3;
-        flags.h = (registers.r8(reg) & 0b1111) == 0;  // borrow from bit 4
-        registers.r8(reg) -= 1;
-        flags.z = (registers.r8(reg) == 0);
+        flags.h = (data.r8(reg) & 0b1111) == 0;  // borrow from bit 4
+        data.r8(reg) -= 1;
+        flags.z = (data.r8(reg) == 0);
         flags.n = true;
-        printf("Reg dec (%u): %02X\n", reg, registers.r8(reg));
+        printf("Reg dec (%u): %02X\n", reg, data.r8(reg));
         return 1;
     }
     if (last_nibble == 0b0010) {  // ld [r16mem], a
@@ -287,13 +316,13 @@ clock_cycles CPU::parse_block0() {
         CODE("ld [r16mem], a");
         uint8_t addr = opcode >> 4;
         if (addr == 0)
-            memory[registers.get_bc()] = registers.a();
+            data.set_mem(data.get_bc(), data.a());
         else if (addr == 1)
-            memory[registers.get_de()] = registers.a();
+            data.set_mem(data.get_de(), data.a());
         else {
-            uint16_t hl = registers.get_hl();
-            memory[hl] = registers.a();
-            registers.set_hl(hl + (addr == 2 ? 1 : -1));  // incr / decr
+            uint16_t hl = data.get_hl();
+            data.set_mem(hl, data.a());
+            data.set_hl(hl + (addr == 2 ? 1 : -1));  // incr / decr
         }
         return 2;
     }
@@ -302,13 +331,13 @@ clock_cycles CPU::parse_block0() {
         CODE("ld a, [r16mem]");
         uint8_t addr = opcode >> 4;
         if (addr == 0)
-            registers.a() = memory[registers.get_bc()];
+            data.a() = data.read_mem(data.get_bc());
         else if (addr == 1)
-            registers.a() = memory[registers.get_de()];
+            data.a() = data.read_mem(data.get_de());
         else {
-            uint16_t hl = registers.get_hl();
-            registers.a() = memory[hl];
-            registers.set_hl(hl + (addr == 2 ? 1 : -1));  // incr / decr
+            uint16_t hl = data.get_hl();
+            data.a() = data.read_mem(hl);
+            data.set_hl(hl + (addr == 2 ? 1 : -1));  // incr / decr
         }
         return 2;
     }
@@ -316,23 +345,23 @@ clock_cycles CPU::parse_block0() {
     if (last_nibble == 0b0011) {  // inc r16
         CODE("inc r16");
         uint8_t addr = opcode >> 4;
-        registers.set_r16(addr, registers.get_r16(addr) + 1);
+        data.set_r16(addr, data.get_r16(addr) + 1);
         return 2;
     }
     if (last_nibble == 0b1011) {  // dec r16, 2 cycles
         CODE("dec r16");
         uint8_t addr = opcode >> 4;
-        registers.set_r16(addr, registers.get_r16(addr) - 1);
+        data.set_r16(addr, data.get_r16(addr) - 1);
         return 2;
     }
     if (last_nibble == 0b1001) {  // add hl, r16, 2 cycles
         CODE("add hl, r16");
-        uint16_t hl = registers.get_hl();
-        uint16_t val = registers.get_r16(opcode >> 4);
+        uint16_t hl = data.get_hl();
+        uint16_t val = data.get_r16(opcode >> 4);
         flags.n = false;
         flags.h = (hl & 0xfff + val & 0xfff) > 0xfff;  // bit 11 overflow
         flags.c = hl > (0xff'ff - val);                // bit 15 overflow
-        registers.set_hl(hl + val);
+        data.set_hl(hl + val);
         return 2;
     }
     printf("Error parsing block0 opcode: 0x%02X\n", opcode);
@@ -348,30 +377,30 @@ clock_cycles CPU::parse_block3() {
     uint8_t r16stk = opcode >> 4 & 0b11;  // cooresponding to bc, de, hl, af
     switch (opcode & 0b1111) {
         case 0b0001: {          // POP r16stk
-            if (r16stk <= 2) {  // bc, de, hl registers
-                registers.r8(2 * r16stk + 1) = memory[registers.SP++];
-                registers.r8(2 * r16stk) = memory[registers.SP++];
+            if (r16stk <= 2) {  // bc, de, hl data
+                data.r8(2 * r16stk + 1) = data.read_mem(data.SP++);
+                data.r8(2 * r16stk) = data.read_mem(data.SP++);
                 return 3;
             }
             // af register
-            flags.z = memory[registers.SP] & (1 << 7);
-            flags.n = memory[registers.SP] & (1 << 6);
-            flags.h = memory[registers.SP] & (1 << 5);
-            flags.c = memory[registers.SP] & (1 << 4);
-            registers.SP += 1;
-            registers.a() = memory[registers.SP++];
+            flags.z = data.read_mem(data.SP) & (1 << 7);
+            flags.n = data.read_mem(data.SP) & (1 << 6);
+            flags.h = data.read_mem(data.SP) & (1 << 5);
+            flags.c = data.read_mem(data.SP) & (1 << 4);
+            data.SP += 1;
+            data.a() = data.read_mem(data.SP++);
             return 3;
         }
         case 0b0101: {          // PUSH r16stk
-            if (r16stk <= 2) {  // bc, de, hl registers
-                memory[--registers.SP] = registers.r8(2 * r16stk);
-                memory[--registers.SP] = registers.r8(2 * r16stk + 1);
+            if (r16stk <= 2) {  // bc, de, hl data
+                data.set_mem(--data.SP, data.r8(2 * r16stk));
+                data.set_mem(--data.SP, data.r8(2 * r16stk + 1));
                 return 4;
             }
             // af register
-            memory[--registers.SP] = registers.a();
-            memory[--registers.SP] =
-                (flags.z << 7) + (flags.n << 6) + (flags.h << 5) + (flags.c << 4);
+            uint8_t push_flags = (flags.z << 7) + (flags.n << 6) + (flags.h << 5) + (flags.c << 4);
+            data.set_mem(--data.SP, data.a());
+            data.set_mem(--data.SP, push_flags);
             return 4;
         }
     }
@@ -384,16 +413,20 @@ clock_cycles CPU::handle_imm16() {
         /* ------------------------ jump ------------------------ */
         case JP_IMM16: {
             CODE("jp imm16");
-            registers.set_PC(imm16);
+            data.set_PC(imm16);
             return 4;
         }
         case JP_NZ_IMM16:
+            CODE("jp nz, imm16");
             return jp_if(!flags.z, imm16);
         case JP_Z_IMM16:
+            CODE("jp z, imm16");
             return jp_if(flags.z, imm16);
         case JP_NC_IMM16:
+            CODE("jp nc, imm16");
             return jp_if(!flags.c, imm16);
         case JP_C_IMM16:
+            CODE("jp c, imm16");
             return jp_if(flags.c, imm16);
 
         /* ------------------------ call ------------------------ */
@@ -413,24 +446,24 @@ clock_cycles CPU::handle_imm16() {
 
         /* ------------------------ load ------------------------ */
         case LD_IMM16_SP: {
-            CODE("ld imm16, sp");
-            memory[imm16] = registers.SP & 0xff;
-            memory[imm16 + 1] = registers.SP >> 8;
+            CODE("ld [imm16], sp");
+            data.set_mem(imm16, data.SP & 0xff);
+            data.set_mem(imm16 + 1, data.SP >> 8);
             return 5;
         }
         case LD_r16_IMM16: {
             CODE("ld r16, imm16");
-            registers.set_r16(r16_addr, imm16);
+            data.set_r16(r16_addr, imm16);
             return 3;
         }
         case LD_IMM16_A: {
-            CODE("ld imm16, a");
-            memory[imm16] = registers.a();
+            CODE("ld [imm16], a");
+            data.set_mem(imm16, data.a());
             return 4;
         }
         case LD_A_IMM16: {
-            CODE("ld a, imm16");
-            registers.a() = memory[imm16];
+            CODE("ld a, [imm16]");
+            data.a() = data.read_mem(imm16);
             return 4;
         }
     }
@@ -447,7 +480,7 @@ clock_cycles CPU::handle_imm8(uint8_t byte) {
         /* ------------------------- jr ------------------------- */
         case JR_IMM8: {
             CODE("jr imm8");
-            registers.signed_offset_PC(byte);
+            data.signed_offset_PC(byte);
             return 3;
         }
         case JR_NZ_IMM8:
@@ -465,58 +498,71 @@ clock_cycles CPU::handle_imm8(uint8_t byte) {
             return jr_if(flags.c, byte);
         case LD_r8_IMM8: {  // 2 cycles
             CODE("ld r8, imm8");
-            registers.r8(r8_addr) = byte;
+            data.r8(r8_addr) = byte;
             return 2;
         }
         /* ------------------- reg a imm8 ops ------------------- */
         case ADD_A_IMM8: {
-            registers.a() = calc_add8(registers.a(), byte);
+            CODE("add a, imm8");
+            data.a() = calc_add8(data.a(), byte);
             return 2;
         }
         case ADC_A_IMM8: {
-            registers.a() = calc_adc8(registers.a(), byte);
+            CODE("adc a, imm8");
+            data.a() = calc_adc8(data.a(), byte);
             return 2;
         }
         case SUB_A_IMM8: {
-            registers.a() = calc_sub8(registers.a(), byte);
+            CODE("sub a, imm8");
+            data.a() = calc_sub8(data.a(), byte);
             return 2;
         }
         case SBC_A_IMM8: {
-            registers.a() = calc_sbc8(registers.a(), byte);
+            CODE("sbc a, imm8");
+            data.a() = calc_sbc8(data.a(), byte);
             return 2;
         }
         case AND_A_IMM8: {
-            registers.a() = calc_and8(registers.a(), byte);
+            CODE("and a, imm8");
+            data.a() = calc_and8(data.a(), byte);
             return 2;
         }
         case XOR_A_IMM8: {
-            registers.a() = calc_xor8(registers.a(), byte);
+            CODE("xor a, imm8");
+            data.a() = calc_xor8(data.a(), byte);
             return 2;
         }
         case OR_A_IMM8: {
-            registers.a() = calc_or8(registers.a(), byte);
+            CODE("or a, imm8");
+            data.a() = calc_or8(data.a(), byte);
             return 2;
         }
         case CP_A_IMM8: {
-            calc_sub8(registers.a(), byte);
+            CODE("cp a, imm8");
+            calc_sub8(data.a(), byte);
             return 2;
         }
         /* ----------------------- block3 ----------------------- */
         case LDH_IMM8_A: {
-            memory[0xff00 + byte] = registers.a();
+            CODE("ldh imm8, a");
+            LOG_LINE("write byte: " << data.get_PC());
+            data.set_mem(0xff00 + byte, data.a());
             return 3;
         }
         case LDH_A_IMM8: {
-            registers.a() = memory[0xff00 + byte];
+            CODE("ldh a, imm8");
+            data.a() = data.read_mem(0xff00 + byte);
             return 3;
         }
         case ADD_SP_IMM8: {
+            CODE("add sp, imm8");
             add_SP(byte);
             return 4;
         }
         case LD_HL_SP_IMM8: {
+            CODE("ld hl, sp + imm8");
             add_SP(byte);
-            registers.set_hl(registers.SP);
+            data.set_hl(data.SP);
             return 3;
         }
     }

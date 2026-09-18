@@ -6,8 +6,8 @@ set(CMAKE_CXX_STANDARD 14)            # Enable c++14 standard
 set(SOURCE_FILES 
     main.cpp 
     cpu.cpp 
-    memory.cpp
     calc_flag_and_ops.cpp
+    mem.cpp
 )
 
 # Add executable target with source files listed in SOURCE_FILES variable

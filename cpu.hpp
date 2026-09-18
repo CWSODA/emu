@@ -5,8 +5,7 @@
 #include <iostream>
 #include <iomanip>
 
-#include "file_reader.hpp"
-#include "registers.hpp"
+#include "data.hpp"
 #include "opcodes.hpp"
 
 #define DEBUG_OPCODE
@@ -29,19 +28,8 @@ constexpr size_t SOME_LARGE_NUMBER = 5e3;
 class CPU {
    public:
     CPU() {}
-    void load_ROM(std::string path) { load_ROM_from_path(path.c_str(), memory); }
-    void run() {
-        auto byte = memory[registers.get_PC()];
-
-#ifdef DEBUG_OPCODE
-        std::cout << "PC=0x" << std::hex << std::setw(4) << std::setfill('0') << registers.get_PC()
-                  << " || opcode=0x" << std::setw(2) << static_cast<int>(byte) << " | "
-                  << cvt_binary(byte) << '\n';
-#endif
-
-        parse_byte(byte);
-        registers.check_inc_PC();
-    }
+    void load_ROM(std::string path) { data.load_ROM_from_path(path.c_str()); }
+    bool run();
     clock_cycles parse_byte(uint8_t byte);
 
    private:
@@ -68,7 +56,6 @@ class CPU {
         flags.h = h;
         flags.c = c;
     }
-    Registers registers;
 
     /* ---------- 8-bit arithmetics and sets flags ---------- */
     uint8_t calc_add8(uint8_t a, uint8_t b);
@@ -85,21 +72,25 @@ class CPU {
     uint8_t r16_addr;  // for imm16 stuff
     uint8_t r8_addr;   // for imm8 stuff, also used for jr cond
 
-    uint8_t memory[0xff'ff + 1];
-    uint16_t read_mem16(uint16_t addr) { return memory[addr] + (memory[addr + 1] << 8); }
-    void ret() {
-        registers.set_PC(read_mem16(registers.SP));
-        registers.SP += 2;
+    Data data;
+    uint16_t read_mem16(uint16_t addr) {
+        return data.read_mem(addr) + (data.read_mem(addr + 1) << 8);
     }
-    void call(uint16_t addr) {  // store registers.PC in registers.SP and jump to addr
-        registers.SP = registers.get_PC() + 1;
-        registers.set_PC(addr);  // jp imm16
+    void ret() {
+        data.set_PC(read_mem16(data.SP));
+        data.SP += 2;
+    }
+    void call(uint16_t addr) {  // store data.PC in data.SP and jump to addr
+        uint16_t ret_addr = data.get_PC() + 1;
+        data.set_mem(--data.SP, ret_addr >> 8);    // MSB
+        data.set_mem(--data.SP, ret_addr & 0xff);  // LSB
+        data.set_PC(addr);                         // jp imm16
     }
     void add_SP(uint8_t byte) {  // adds as signed byte and sets flag
-        registers.SP = int16_t(byte) + registers.SP;
+        data.SP = int16_t(byte) + data.SP;
         flags.z = 0;
         flags.n = 0;
-        printf("Not yet implemented add registers.SP flags\n");
+        printf("Not yet implemented add data.SP flags\n");
     }
 
     /* ------------------- condition calls ------------------ */
@@ -110,12 +101,12 @@ class CPU {
     }
     clock_cycles jr_if(bool cc, uint8_t byte) {  // for JR cc
         if (!cc) return 2;
-        registers.signed_offset_PC(byte);
+        data.signed_offset_PC(byte);
         return 3;
     }
     clock_cycles jp_if(bool cc, uint16_t addr) {  // for JR cc
         if (!cc) return 3;
-        registers.set_PC(addr);
+        data.set_PC(addr);
         return 4;
     }
     clock_cycles call_if(bool cc, uint16_t addr) {  // for CALL cc

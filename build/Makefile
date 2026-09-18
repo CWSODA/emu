@@ -201,29 +201,29 @@ main.cpp.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/emu.dir/build.make CMakeFiles/emu.dir/main.cpp.s
 .PHONY : main.cpp.s
 
-memory.o: memory.cpp.o
-.PHONY : memory.o
+mem.o: mem.cpp.o
+.PHONY : mem.o
 
 # target to build an object file
-memory.cpp.o:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/emu.dir/build.make CMakeFiles/emu.dir/memory.cpp.o
-.PHONY : memory.cpp.o
+mem.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/emu.dir/build.make CMakeFiles/emu.dir/mem.cpp.o
+.PHONY : mem.cpp.o
 
-memory.i: memory.cpp.i
-.PHONY : memory.i
+mem.i: mem.cpp.i
+.PHONY : mem.i
 
 # target to preprocess a source file
-memory.cpp.i:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/emu.dir/build.make CMakeFiles/emu.dir/memory.cpp.i
-.PHONY : memory.cpp.i
+mem.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/emu.dir/build.make CMakeFiles/emu.dir/mem.cpp.i
+.PHONY : mem.cpp.i
 
-memory.s: memory.cpp.s
-.PHONY : memory.s
+mem.s: mem.cpp.s
+.PHONY : mem.s
 
 # target to generate assembly for a file
-memory.cpp.s:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/emu.dir/build.make CMakeFiles/emu.dir/memory.cpp.s
-.PHONY : memory.cpp.s
+mem.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/emu.dir/build.make CMakeFiles/emu.dir/mem.cpp.s
+.PHONY : mem.cpp.s
 
 # Help Target
 help:
@@ -243,9 +243,9 @@ help:
 	@echo "... main.o"
 	@echo "... main.i"
 	@echo "... main.s"
-	@echo "... memory.o"
-	@echo "... memory.i"
-	@echo "... memory.s"
+	@echo "... mem.o"
+	@echo "... mem.i"
+	@echo "... mem.s"
 .PHONY : help
 
 
