@@ -980,6 +980,7 @@ CMakeFiles/emu.dir/calc_flag_and_ops.cpp.o: /Users/admin/projects/emu/calc_flag_
   /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/clang/16/include/stdint.h \
   /Users/admin/projects/emu/cpu.hpp \
   /Users/admin/projects/emu/data.hpp \
+  /Users/admin/projects/emu/logger.hpp \
   /Users/admin/projects/emu/opcodes.hpp
 
 CMakeFiles/emu.dir/cpu.cpp.o: /Users/admin/projects/emu/cpu.cpp \
@@ -2943,6 +2944,7 @@ CMakeFiles/emu.dir/main.cpp.o: /Users/admin/projects/emu/main.cpp \
   /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/clang/16/include/stdint.h \
   /Users/admin/projects/emu/cpu.hpp \
   /Users/admin/projects/emu/data.hpp \
+  /Users/admin/projects/emu/logger.hpp \
   /Users/admin/projects/emu/opcodes.hpp
 
 CMakeFiles/emu.dir/mem.cpp.o: /Users/admin/projects/emu/mem.cpp \
@@ -3929,9 +3931,9 @@ CMakeFiles/emu.dir/mem.cpp.o: /Users/admin/projects/emu/mem.cpp \
 
 /Users/admin/projects/emu/main.cpp:
 
-/Users/admin/projects/emu/logger.hpp:
-
 /Users/admin/projects/emu/opcodes.hpp:
+
+/Users/admin/projects/emu/logger.hpp:
 
 /Users/admin/projects/emu/cpu.hpp:
 

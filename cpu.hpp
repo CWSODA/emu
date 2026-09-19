@@ -7,9 +7,10 @@
 
 #include "data.hpp"
 #include "opcodes.hpp"
+#include "logger.hpp"
 
-#define DEBUG_OPCODE
-#ifdef DEBUG_OPCODE
+#define DEBUG_INSTR
+#ifdef DEBUG_INSTR
 #define CODE(...) printf(">>> %s\n", __VA_ARGS__)
 #else
 #define CODE(...)
@@ -33,6 +34,7 @@ class CPU {
     clock_cycles parse_byte(uint8_t byte);
 
    private:
+    uint instr_count = 0;
     clock_cycles parse_opcode();
     clock_cycles parse_block0();
     clock_cycles parse_block3();
@@ -74,14 +76,16 @@ class CPU {
 
     Data data;
     uint16_t read_mem16(uint16_t addr) {
-        return data.read_mem(addr) + (data.read_mem(addr + 1) << 8);
+        return data.read_mem(addr) | (data.read_mem(addr + 1) << 8);
     }
     void ret() {
         data.set_PC(read_mem16(data.SP));
         data.SP += 2;
+        LOG_SP_LINE("Return to SP(0x" << data.SP << ") to PC(0x" << data.get_PC() << ")");
     }
     void call(uint16_t addr) {  // store data.PC in data.SP and jump to addr
-        uint16_t ret_addr = data.get_PC() + 1;
+        LOG_SP_LINE("Call from SP(0x" << data.SP << ") saving PC(0x" << data.get_PC() << ")");
+        uint16_t ret_addr = data.get_PC();
         data.set_mem(--data.SP, ret_addr >> 8);    // MSB
         data.set_mem(--data.SP, ret_addr & 0xff);  // LSB
         data.set_PC(addr);                         // jp imm16

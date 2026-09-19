@@ -2,37 +2,40 @@
 #include <stdio.h>
 
 #include "cpu.hpp"
-#include "logger.hpp"
 
+#define DEBUG_OPCODE
 bool CPU::run() {
     auto byte = data.read_mem(data.get_PC());
 
 #ifdef DEBUG_OPCODE
     std::cout << "PC=0x" << std::hex << std::setw(4) << std::setfill('0') << data.get_PC()
               << " || opcode=0x" << std::setw(2) << static_cast<int>(byte) << " | "
-              << cvt_binary(byte) << '\n';
+              << cvt_binary(byte) << " ||| " << instr_count << '\n';
 #endif
-
+    data.inc_PC();
     auto cycles = parse_byte(byte);
-    data.check_inc_PC();
 
-    static int count = 0;
+    static uint count = 0;
     if (cycles == 255) count++;
-    return (count < 1);  // returns false for halt
+    return (count < 1) && (instr_count <= 100'000);  // returns false for halt
 }
 
 clock_cycles CPU::parse_byte(uint8_t byte) {
     switch (op_state) {
         case OpState::READY: {
             opcode = byte;
-            return parse_opcode();
+            auto cycles = parse_opcode();
+            if (op_state == OpState::READY) instr_count++;  // 1 byte instr
+            return cycles;
         }
         case OpState::IMM8: {
             op_state = OpState::READY;
+            instr_count++;
             return handle_imm8(byte);
         }
         case OpState::CB: {
             op_state = OpState::READY;
+            instr_count++;
             return handle_cb(byte);
         }
         case OpState::IMM16L: {
@@ -43,6 +46,7 @@ clock_cycles CPU::parse_byte(uint8_t byte) {
         case OpState::IMM16H: {
             imm16 += byte << 8;
             op_state = OpState::READY;
+            instr_count++;
             return handle_imm16();
         }
     }
@@ -93,6 +97,10 @@ clock_cycles CPU::parse_opcode() {
         case JP_C_IMM16:
         case JP_IMM16:
         case CALL_IMM16:
+        case CALL_NZ_IMM16:
+        case CALL_Z_IMM16:
+        case CALL_NC_IMM16:
+        case CALL_C_IMM16:
         case LD_IMM16_A:
         case LD_A_IMM16:
         case LD_IMM16_SP: {
@@ -214,7 +222,6 @@ clock_cycles CPU::parse_opcode() {
             return 1;
         }
         case 0b10: {  // 8-bit arithmetic on reg A
-            puts("arith");
             parse_8bit_arith();
             return 1;
         }
@@ -269,8 +276,9 @@ void CPU::parse_8bit_arith() {
             calc_sub8(data.a(), data.r8(reg));
             break;
         }
+        default:
+            printf("Error parsing 8-bit arithmetic opcode: %02X\n", opcode);
     }
-    printf("Error parsing 8-bit arithmetic opcode: %02X\n", opcode);
 }
 
 // used to parse variable opcodes
@@ -370,13 +378,15 @@ clock_cycles CPU::parse_block0() {
 
 clock_cycles CPU::parse_block3() {
     if ((opcode & 0b111) == 0b111) {  // rst tgt3, calls tgt3 * 8
+        CODE("rst tgt3");
         uint16_t tgt3 = (opcode >> 3) & 0b111;
         call(tgt3 * 8);
         return 4;
     }
     uint8_t r16stk = opcode >> 4 & 0b11;  // cooresponding to bc, de, hl, af
     switch (opcode & 0b1111) {
-        case 0b0001: {          // POP r16stk
+        case 0b0001: {  // POP r16stk
+            CODE("pop r16stk");
             if (r16stk <= 2) {  // bc, de, hl data
                 data.r8(2 * r16stk + 1) = data.read_mem(data.SP++);
                 data.r8(2 * r16stk) = data.read_mem(data.SP++);
@@ -391,14 +401,15 @@ clock_cycles CPU::parse_block3() {
             data.a() = data.read_mem(data.SP++);
             return 3;
         }
-        case 0b0101: {          // PUSH r16stk
+        case 0b0101: {  // PUSH r16stk
+            CODE("push r16stk");
             if (r16stk <= 2) {  // bc, de, hl data
                 data.set_mem(--data.SP, data.r8(2 * r16stk));
                 data.set_mem(--data.SP, data.r8(2 * r16stk + 1));
                 return 4;
             }
             // af register
-            uint8_t push_flags = (flags.z << 7) + (flags.n << 6) + (flags.h << 5) + (flags.c << 4);
+            uint8_t push_flags = (flags.z << 7) | (flags.n << 6) | (flags.h << 5) | (flags.c << 4);
             data.set_mem(--data.SP, data.a());
             data.set_mem(--data.SP, push_flags);
             return 4;
@@ -436,12 +447,16 @@ clock_cycles CPU::handle_imm16() {
             return 6;
         }
         case CALL_NZ_IMM16:
+            CODE("call nz, imm16");
             return call_if(!flags.z, imm16);
         case CALL_Z_IMM16:
+            CODE("call z, imm16");
             return call_if(flags.z, imm16);
         case CALL_NC_IMM16:
+            CODE("call nc, imm16");
             return call_if(!flags.c, imm16);
         case CALL_C_IMM16:
+            CODE("call c, imm16");
             return call_if(flags.c, imm16);
 
         /* ------------------------ load ------------------------ */
@@ -545,7 +560,6 @@ clock_cycles CPU::handle_imm8(uint8_t byte) {
         /* ----------------------- block3 ----------------------- */
         case LDH_IMM8_A: {
             CODE("ldh imm8, a");
-            LOG_LINE("write byte: " << data.get_PC());
             data.set_mem(0xff00 + byte, data.a());
             return 3;
         }

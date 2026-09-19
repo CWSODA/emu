@@ -10,7 +10,7 @@ struct Data {
     Data() {}
 
     // 16-bit
-    uint16_t SP;
+    uint16_t SP = 0xfffe;
 
     uint8_t& a() { return reg8[6]; }
     uint8_t& c() { return reg8[1]; }
@@ -66,25 +66,13 @@ struct Data {
     uint16_t get_bc() { return (reg8[0] << 8) + reg8[1]; }
     uint16_t get_de() { return (reg8[2] << 8) + reg8[3]; }
 
-    bool has_jump_flag = false;
     uint16_t get_PC() { return PC; }
     void set_PC(uint16_t addr) {
         PC = addr;
         printf("Setting PC to: 0x%04X\n", PC);
-        has_jump_flag = true;
     }
-    void signed_offset_PC(uint8_t byte) {
-        PC = PC + (int8_t)byte;
-        printf("Setting PC to: 0x%04X\n", PC);
-        // has_jump_flag = true;
-    }
-    void check_inc_PC() {
-        if (has_jump_flag) {
-            has_jump_flag = false;
-        } else {
-            PC++;
-        }
-    }
+    void signed_offset_PC(uint8_t byte) { set_PC(PC + (int8_t)byte); }
+    void inc_PC() { PC++; }
 
     uint8_t read_mem(uint16_t addr);
     void set_mem(uint16_t addr, uint8_t val);
