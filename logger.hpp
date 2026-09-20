@@ -27,3 +27,10 @@ inline std::ofstream& log_misc() {
 }
 // #define LOG_MISC_LINE(s)
 #define LOG_MISC_LINE(s) log_misc() << std::hex << s << std::endl
+
+inline std::ofstream& log_opcode() {
+    static std::ofstream log("../logs/opcode_log.txt");
+    return log;
+}
+// #define LOG_OPCODE_LINE(s)
+#define LOG_OPCODE_LINE(s) log_opcode() << std::hex << s << std::endl

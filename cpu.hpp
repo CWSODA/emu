@@ -12,11 +12,12 @@
 // #define DEBUG_OPCODE
 // #define DEBUG_INSTR
 #ifdef DEBUG_INSTR
-#define CODE(...) printf(">>> %s\n", __VA_ARGS__)
+#define CODE(msg) LOG_OPCODE_LINE(msg)
 #else
 #define CODE(...)
 #endif
 constexpr uint cpu_instr_limit = 10e6;
+// constexpr uint cpu_instr_limit = 1000;
 
 // F = flags register
 struct Flags {

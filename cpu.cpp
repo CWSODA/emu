@@ -7,9 +7,9 @@ bool CPU::run() {
     auto byte = data.read_mem(data.get_PC());
 
 #ifdef DEBUG_OPCODE
-    std::cout << "PC=0x" << std::hex << std::setw(4) << std::setfill('0') << data.get_PC()
-              << " || opcode=0x" << std::setw(2) << static_cast<int>(byte) << " | "
-              << cvt_binary(byte) << " ||| " << instr_count << '\n';
+    LOG_OPCODE_LINE("PC=0x" << std::hex << std::setw(4) << std::setfill('0') << data.get_PC()
+                            << " || opcode=0x" << std::setw(2) << static_cast<int>(byte) << " | "
+                            << cvt_binary(byte) << " ||| " << instr_count);
 #endif
     data.inc_PC();
     auto cycles = parse_byte(byte);
