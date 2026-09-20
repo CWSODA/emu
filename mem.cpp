@@ -8,7 +8,9 @@ uint8_t Data::read_mem(uint16_t addr) {
 
 void Data::set_mem(uint16_t addr, uint8_t val) {
     if (addr == 0xff01) {
-        log() << static_cast<char>(val);
+        char c = static_cast<char>(val);
+        log() << c;
+        putc(c, stdout);
     }
     LOG_MEM_LINE("set mem: 0x" << addr);
     memory[addr] = val;

@@ -34,6 +34,7 @@ clock_cycles CPU::parse_byte(uint8_t byte) {
             return handle_imm8(byte);
         }
         case OpState::CB: {
+            opcode = byte;
             op_state = OpState::READY;
             instr_count++;
             return handle_cb(byte);
@@ -379,8 +380,8 @@ clock_cycles CPU::parse_block0() {
         uint16_t hl = data.get_hl();
         uint16_t val = data.get_r16(opcode >> 4);
         flags.n = false;
-        flags.h = (hl & 0xfff + val & 0xfff) > 0xfff;  // bit 11 overflow
-        flags.c = hl > (0xff'ff - val);                // bit 15 overflow
+        flags.h = ((hl & 0xfff) + (val & 0xfff)) > 0xfff;  // bit 11 overflow
+        flags.c = hl > (0xff'ff - val);                    // bit 15 overflow
         data.set_hl(hl + val);
         return 2;
     }
@@ -395,7 +396,7 @@ clock_cycles CPU::parse_block3() {
         call(tgt3 * 8);
         return 4;
     }
-    uint8_t r16stk = opcode >> 4 & 0b11;  // cooresponding to bc, de, hl, af
+    uint8_t r16stk = (opcode >> 4) & 0b11;  // cooresponding to bc, de, hl, af
     switch (opcode & 0b1111) {
         case 0b0001: {  // POP r16stk
             CODE("pop r16stk");
@@ -712,13 +713,13 @@ void CPU::run_daa() {
     }
     flags.z = (data.a() == 0);
     flags.h = 0;
-
-    // LOG_MISC_LINE("Reg A(0x" << int(old_a) << "), flags: z(" << old_flags.z << "), n("
-    //                          << old_flags.n << "), h(" << old_flags.h << "), c(" << old_flags.c
-    //                          << "), DAA output(0x" << int(data.a()) << ")");
 }
 
-void CPU::dump_state(std::ofstream& stream) {
+void CPU::dump_state(std::ofstream& stream, bool show_flags) {
+#if !ENABLE_CPU_DUMP
+    return;
+#endif
+
     uint8_t flag_byte = (flags.z << 7) | (flags.n << 6) | (flags.h << 5) | (flags.c << 4);
 
     stream << std::hex << std::setfill('0');
@@ -737,6 +738,13 @@ void CPU::dump_state(std::ofstream& stream) {
     stream << "," << std::setw(2) << (int)data.read_mem(data.get_PC() + 1);
     stream << "," << std::setw(2) << (int)data.read_mem(data.get_PC() + 2);
     stream << "," << std::setw(2) << (int)data.read_mem(data.get_PC() + 3);
+
+    if (show_flags) {
+        stream << " Z(" << flags.z << ")";
+        stream << " N(" << flags.n << ")";
+        stream << " H(" << flags.h << ")";
+        stream << " C(" << flags.c << ")";
+    }
 
     stream << std::endl;
 }

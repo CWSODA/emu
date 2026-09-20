@@ -9,14 +9,14 @@
 #include "opcodes.hpp"
 #include "logger.hpp"
 
-// #define DEBUG_OPCODE
-// #define DEBUG_INSTR
+#define DEBUG_OPCODE
+#define DEBUG_INSTR
 #ifdef DEBUG_INSTR
 #define CODE(msg) LOG_OPCODE_LINE(msg)
 #else
 #define CODE(...)
 #endif
-constexpr uint cpu_instr_limit = 10e6;
+constexpr uint cpu_instr_limit = 100e6;
 // constexpr uint cpu_instr_limit = 1000;
 
 // F = flags register
@@ -35,7 +35,7 @@ class CPU {
     void load_test_rom(uint8_t idx);
     bool run();
     clock_cycles parse_byte(uint8_t byte);
-    void dump_state(std::ofstream& stream);
+    void dump_state(std::ofstream& stream, bool show_flags = false);
 
    private:
     uint instr_count = 0;
@@ -95,11 +95,11 @@ class CPU {
         data.set_PC(addr);                         // jp imm16
     }
     void add_SP(uint8_t byte) {  // adds as signed byte and sets flag
-        data.SP = int8_t(byte) + data.SP;
         flags.z = 0;
         flags.n = 0;
-        flags.h = (byte & 0x0f + data.SP & 0x0f) > 0x0f;  // bit 3 overflow
-        flags.c = (byte + data.SP & 0xff) > 0xff;         // bit 7 overflow
+        flags.h = ((byte & 0x0f) + (data.SP & 0x0f)) > 0x0f;  // bit 3 overflow
+        flags.c = (byte + (data.SP & 0xff)) > 0xff;           // bit 7 overflow
+        data.SP = int8_t(byte) + data.SP;
     }
 
     /* ------------------- condition calls ------------------ */

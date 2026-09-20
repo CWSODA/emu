@@ -3,7 +3,7 @@
 uint8_t CPU::calc_add8(uint8_t a, uint8_t b) {
     flags.n = false;
     flags.c = a > (0xff - b);
-    flags.h = (a & 0x0f + b & 0x0f) > 0x0f;
+    flags.h = ((a & 0x0f) + (b & 0x0f)) > 0x0f;
 
     uint8_t result = a + b;
     flags.z = (result == 0);
@@ -11,7 +11,7 @@ uint8_t CPU::calc_add8(uint8_t a, uint8_t b) {
 }
 uint8_t CPU::calc_adc8(uint8_t a, uint8_t b) {
     flags.n = false;
-    flags.h = (a & 0x0f + b & 0x0f + flags.c) > 0x0f;
+    flags.h = ((a & 0x0f) + (b & 0x0f) + flags.c) > 0x0f;
 
     uint8_t result = a + b + flags.c;
     flags.z = (result == 0);
@@ -29,7 +29,7 @@ uint8_t CPU::calc_sub8(uint8_t a, uint8_t b) {
 }
 uint8_t CPU::calc_sbc8(uint8_t a, uint8_t b) {
     flags.n = true;
-    flags.h = (a & 0x0f) < (b & 0x0f + 1);  // borrow from bit4
+    flags.h = (a & 0x0f) < ((b & 0x0f) + 1);  // borrow from bit4
 
     uint8_t result = a - b - flags.c;
     flags.z = (result == 0);
