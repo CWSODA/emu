@@ -5,6 +5,9 @@
 #include <string>
 #include <fstream>
 
+constexpr uint16_t IF_ADDR = 0xff0f;  // interrupt req
+constexpr uint16_t IE_ADDR = 0xffff;  // interrupt enabled
+
 // stores and handles register/memory data
 struct Data {
     Data() {}
@@ -79,12 +82,16 @@ struct Data {
     void set_mem(uint16_t addr, uint8_t val);
     void load_ROM_from_path(const char* filename);
     void load_test_ROM(uint8_t idx);
+    void inc_DIV();
+    void inc_TIMA();
+    uint32_t get_clock_divider() { return clock_divider; };
 
    private:
     // 8-bit registers
     uint8_t reg8[7];  // b, c, d, e, h, l, a registers
     uint16_t PC = 0x0100;
     uint8_t memory[0xff'ff + 1] = {};
+    uint32_t clock_divider = 1024;  // default
 };
 
 inline std::string cvt_binary(uint8_t byte) {

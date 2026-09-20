@@ -4,7 +4,7 @@
 // TESTS PASSED SO FAR ARE HIGHLIGHTED:
 // 00 - all
 /* -------------------- 01 - special -------------------- */
-// 02 - interrupts
+/* ------------------- 02 - interrupts ------------------ */
 // 03 - op sp, hl
 // 04 - op r, imm
 /* --------------------- 05 - op rp --------------------- */
@@ -28,6 +28,7 @@ int main(int argc, char* argv[]) {
     while (cpu.run()) {
         cpu.dump_state(log_misc(), true);
     }
+    puts("\nCPU instruction count timeout");
 
     return 0;
 }

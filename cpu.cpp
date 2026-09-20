@@ -3,7 +3,14 @@
 
 #include "cpu.hpp"
 
-bool CPU::run() {
+bool CPU::run(bool stop_on_halt) {
+    check_interrupt();
+    static bool just_halted = false;
+    if (is_halted) {
+        tick_timer(1);  // tick by 1 if halted
+        return true;
+    }
+
     auto byte = data.read_mem(data.get_PC());
 
 #ifdef DEBUG_OPCODE
@@ -13,11 +20,10 @@ bool CPU::run() {
 #endif
     data.inc_PC();
     auto cycles = parse_byte(byte);
+    tick_timer(cycles);
 
-    static uint count = 0;
-    if (cycles == 255) count++;
-    return (count < 1) && (instr_count <= cpu_instr_limit);  // returns false for halt
-    // return (count < 1);  // returns false for halt
+    if (stop_on_halt && is_halted) return false;
+    return (instr_count <= cpu_instr_limit);
 }
 
 clock_cycles CPU::parse_byte(uint8_t byte) {
@@ -64,8 +70,9 @@ clock_cycles CPU::parse_opcode() {
         }
         case HALT: {
             CODE("halt");
-            puts("HALT");
-            return 255;
+            puts("halted!");
+            is_halted = true;
+            return 0;
         }
         /* ------------------------ imm8 ------------------------ */
         // reg A arithmetic
@@ -179,8 +186,8 @@ clock_cycles CPU::parse_opcode() {
         }
         case RETI: {
             CODE("reti");
+            IME = true;
             ret();
-            // printf("Interrupts not yet enabled!\n");
             return 4;
         }
         case JP_HL: {
@@ -206,7 +213,7 @@ clock_cycles CPU::parse_opcode() {
         }
         case DI: {
             CODE("di");
-            interrupt_flag = false;
+            IME = false;
             return 1;
         }
         case EI: {
@@ -225,9 +232,6 @@ clock_cycles CPU::parse_opcode() {
             return parse_block0();
         }
         case 0b01: {  // 8-bit reg to reg load
-            if (opcode == 0b0111011) {
-                printf("halt called!\n");
-            }
             CODE("ld r8, r8");
             uint8_t dest = (opcode >> 3) & 0b111;
             uint8_t src = opcode & 0b111;
@@ -502,8 +506,9 @@ clock_cycles CPU::handle_imm16() {
 clock_cycles CPU::handle_imm8(uint8_t byte) {
     switch (opcode) {
         case STOP_IMM8: {
-            puts("STOP");
             CODE("stop");
+            data.set_mem(0xff04, 0);  // reset timer counter
+            is_stopped = true;
             return 0;
         }
         /* ------------------------- jr ------------------------- */

@@ -6,7 +6,9 @@ set(CMAKE_CXX_STANDARD 14)            # Enable c++14 standard
 set(SOURCE_FILES 
     main.cpp 
     cpu.cpp 
-    calc_flag_and_ops.cpp
+    cpu_timer.cpp
+    opcode_instructions.cpp
+    interrupts.cpp
     file_reader.cpp
     mem.cpp
 )

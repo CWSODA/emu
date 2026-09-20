@@ -90,3 +90,11 @@ enum CBPrefixOpcode {
     SWAP_r8 = 0b00110,
     SRL_r8 = 0b00111,
 };
+
+enum InterruptAddr {
+    VBlankInt = 0x40,
+    STATInt = 0x48,
+    TimerInt = 0x50,
+    SerialInt = 0x58,
+    JoypadInt = 0x60,
+};
