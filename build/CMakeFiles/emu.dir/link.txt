@@ -1,1 +1,1 @@
-/usr/bin/c++  -arch arm64 -Wl,-search_paths_first -Wl,-headerpad_max_install_names CMakeFiles/emu.dir/main.cpp.o CMakeFiles/emu.dir/cpu.cpp.o CMakeFiles/emu.dir/calc_flag_and_ops.cpp.o CMakeFiles/emu.dir/mem.cpp.o -o emu
+/usr/bin/c++  -arch arm64 -Wl,-search_paths_first -Wl,-headerpad_max_install_names CMakeFiles/emu.dir/main.cpp.o CMakeFiles/emu.dir/cpu.cpp.o CMakeFiles/emu.dir/calc_flag_and_ops.cpp.o CMakeFiles/emu.dir/file_reader.cpp.o CMakeFiles/emu.dir/mem.cpp.o -o emu

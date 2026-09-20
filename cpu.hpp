@@ -9,12 +9,14 @@
 #include "opcodes.hpp"
 #include "logger.hpp"
 
-#define DEBUG_INSTR
+// #define DEBUG_OPCODE
+// #define DEBUG_INSTR
 #ifdef DEBUG_INSTR
 #define CODE(...) printf(">>> %s\n", __VA_ARGS__)
 #else
 #define CODE(...)
 #endif
+constexpr uint cpu_instr_limit = 10e6;
 
 // F = flags register
 struct Flags {
@@ -25,13 +27,14 @@ struct Flags {
 };
 
 typedef uint8_t clock_cycles;
-constexpr size_t SOME_LARGE_NUMBER = 5e3;
 class CPU {
    public:
     CPU() {}
-    void load_ROM(std::string path) { data.load_ROM_from_path(path.c_str()); }
+    void load_rom(std::string path) { data.load_ROM_from_path(path.c_str()); }
+    void load_test_rom(uint8_t idx);
     bool run();
     clock_cycles parse_byte(uint8_t byte);
+    void dump_state(std::ofstream& stream);
 
    private:
     uint instr_count = 0;
@@ -91,10 +94,11 @@ class CPU {
         data.set_PC(addr);                         // jp imm16
     }
     void add_SP(uint8_t byte) {  // adds as signed byte and sets flag
-        data.SP = int16_t(byte) + data.SP;
+        data.SP = int8_t(byte) + data.SP;
         flags.z = 0;
         flags.n = 0;
-        printf("Not yet implemented add data.SP flags\n");
+        flags.h = (byte & 0x0f + data.SP & 0x0f) > 0x0f;  // bit 3 overflow
+        flags.c = (byte + data.SP & 0xff) > 0xff;         // bit 7 overflow
     }
 
     /* ------------------- condition calls ------------------ */
@@ -127,4 +131,6 @@ class CPU {
         interrupt_flag = true;
         set_EI = false;
     }
+
+    void run_daa();
 };

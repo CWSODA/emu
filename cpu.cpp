@@ -3,7 +3,6 @@
 
 #include "cpu.hpp"
 
-#define DEBUG_OPCODE
 bool CPU::run() {
     auto byte = data.read_mem(data.get_PC());
 
@@ -17,7 +16,8 @@ bool CPU::run() {
 
     static uint count = 0;
     if (cycles == 255) count++;
-    return (count < 1) && (instr_count <= 100'000);  // returns false for halt
+    return (count < 1) && (instr_count <= cpu_instr_limit);  // returns false for halt
+    // return (count < 1);  // returns false for halt
 }
 
 clock_cycles CPU::parse_byte(uint8_t byte) {
@@ -63,6 +63,7 @@ clock_cycles CPU::parse_opcode() {
         }
         case HALT: {
             CODE("halt");
+            puts("HALT");
             return 255;
         }
         /* ------------------------ imm8 ------------------------ */
@@ -110,14 +111,16 @@ clock_cycles CPU::parse_opcode() {
         /* ---------------- reg A stuff and flags --------------- */
         case RLCA: {
             CODE("RLCA");
-            set_flags_znhc(0, 0, 0, data.a() & 0b1000'000);
-            data.a() = (data.a() << 1) | flags.c;
+            uint8_t old_msb = data.a() & 0b1000'0000;
+            data.a() = (data.a() << 1) | old_msb;
+            set_flags_znhc(0, 0, 0, old_msb);
             return 1;
         }
         case RRCA: {
             CODE("RRCA");
-            set_flags_znhc(0, 0, 0, data.a() & 0b1);
-            data.a() = (data.a() >> 1) | (flags.c << 7);
+            uint8_t old_lsb = data.a() & 0b1;
+            data.a() = (data.a() >> 1) | (old_lsb << 7);
+            set_flags_znhc(0, 0, 0, old_lsb);
             return 1;
         }
         case RLA: {
@@ -135,7 +138,7 @@ clock_cycles CPU::parse_opcode() {
             return 1;
         }
         case DAA: {
-            printf("DAA not yet implemented!\n");
+            run_daa();
             return 1;
         }
         case CPL: {
@@ -176,7 +179,7 @@ clock_cycles CPU::parse_opcode() {
         case RETI: {
             CODE("reti");
             ret();
-            printf("Interrupts not yet enabled!\n");
+            // printf("Interrupts not yet enabled!\n");
             return 4;
         }
         case JP_HL: {
@@ -195,6 +198,11 @@ clock_cycles CPU::parse_opcode() {
             data.a() = data.read_mem(0xff00 + data.c());
             return 2;
         }
+        case LD_SP_HL: {
+            CODE("ld sp, hl");
+            data.SP = data.get_hl();
+            return 2;
+        }
         case DI: {
             CODE("di");
             interrupt_flag = false;
@@ -204,6 +212,10 @@ clock_cycles CPU::parse_opcode() {
             CODE("ei");
             set_EI = true;
             return 1;
+        }
+        case CB_prefix: {
+            op_state = OpState::CB;
+            return 0;
         }
     }
     // match variable opcodes
@@ -306,7 +318,7 @@ clock_cycles CPU::parse_block0() {
         data.r8(reg) += 1;
         flags.z = (data.r8(reg) == 0);
         flags.n = false;
-        printf("Reg inc (%u): %02X\n", reg, data.r8(reg));
+        // printf("Reg inc (%u): %02X\n", reg, data.r8(reg));
         return 1;
     }
     if (last_three == 0b101) {  // dec r8
@@ -316,7 +328,7 @@ clock_cycles CPU::parse_block0() {
         data.r8(reg) -= 1;
         flags.z = (data.r8(reg) == 0);
         flags.n = true;
-        printf("Reg dec (%u): %02X\n", reg, data.r8(reg));
+        // printf("Reg dec (%u): %02X\n", reg, data.r8(reg));
         return 1;
     }
     if (last_nibble == 0b0010) {  // ld [r16mem], a
@@ -489,6 +501,7 @@ clock_cycles CPU::handle_imm16() {
 clock_cycles CPU::handle_imm8(uint8_t byte) {
     switch (opcode) {
         case STOP_IMM8: {
+            puts("STOP");
             CODE("stop");
             return 0;
         }
@@ -500,7 +513,6 @@ clock_cycles CPU::handle_imm8(uint8_t byte) {
         }
         case JR_NZ_IMM8:
             CODE("jr nz, imm8");
-            printf("Flag Z: %u\n", flags.z);
             return jr_if(!flags.z, byte);
         case JR_Z_IMM8:
             CODE("jr z, imm8");
@@ -585,7 +597,146 @@ clock_cycles CPU::handle_imm8(uint8_t byte) {
 }
 
 clock_cycles CPU::handle_cb(uint8_t byte) {
-    switch (byte) {}
-    puts("$CB prefix opcodes not yet implemented!\n");
+    // match first 2 bits
+    uint8_t reg = opcode & 0b111;
+    uint8_t bit_idx = (opcode >> 3) & 0b111;
+    switch (byte >> 6) {
+        case 0b01: {
+            CODE("bit b3, r8");
+            flags.z = !(data.r8(reg) & (1 << bit_idx));
+            flags.h = 1;
+            flags.n = 0;
+            return 2;  // 3 if hl
+        }
+        case 0b10: {
+            CODE("res b3, r8");  // set bit b3 to zero
+            data.r8(reg) &= ~(1 << bit_idx);
+            return 2;  // 4 if hl
+        }
+        case 0b11: {
+            CODE("set b3, r8");
+            data.r8(reg) |= (1 << bit_idx);
+            return 2;  // 4 if hl
+        }
+    }
+    // middle 3 bits is bit-index
+    switch (bit_idx) {
+        case RLC_r8: {
+            CODE("rlc r8");
+            bool old_msb = data.r8(reg) & 0b1000'0000;
+            data.r8(reg) = (data.r8(reg) << 1) | old_msb;
+            set_flags_znhc(data.r8(reg) == 0, 0, 0, old_msb);
+            return 2;  // 4 if hl
+        }
+        case RRC_r8: {
+            CODE("rrc r8");
+            bool old_lsb = data.r8(reg) & 0b1;
+            data.r8(reg) = (data.r8(reg) >> 1) | (old_lsb << 7);
+            set_flags_znhc(data.r8(reg) == 0, 0, 0, old_lsb);
+            return 2;  // 4 if hl
+        }
+        case RL_r8: {
+            CODE("rl r8");
+            bool old_msb = data.r8(reg) & 0b1000'0000;
+            data.r8(reg) = (data.r8(reg) << 1) | flags.c;
+            set_flags_znhc(data.r8(reg) == 0, 0, 0, old_msb);
+            return 2;  // 4 if hl
+        }
+        case RR_r8: {
+            CODE("rr r8");
+            bool old_lsb = data.r8(reg) & 0b1;
+            data.r8(reg) = (data.r8(reg) >> 1) | (flags.c << 7);
+            set_flags_znhc(data.r8(reg) == 0, 0, 0, old_lsb);
+            return 2;  // 4 if hl
+        }
+        case SLA_r8: {  // shift left arithmetically
+            CODE("sla r8");
+            bool old_msb = data.r8(reg) & 0b1000'0000;
+            data.r8(reg) = (data.r8(reg) << 1);  // pad with 0
+            set_flags_znhc(data.r8(reg) == 0, 0, 0, old_msb);
+            return 2;  // 4 if hl
+        }
+        case SRA_r8: {  // shift right arithmetically
+            CODE("sra r8");
+            bool old_lsb = data.r8(reg) & 0b1;
+            bool old_msb = data.r8(reg) & 0b1000'0000;
+            data.r8(reg) = (data.r8(reg) >> 1) | (old_msb << 7);  // keep MSB
+            set_flags_znhc(data.r8(reg) == 0, 0, 0, old_lsb);
+            return 2;  // 4 if hl
+        }
+        case SWAP_r8: {  // swap upper and lower 4 bits
+            CODE("swap r8");
+            data.r8(reg) = (data.r8(reg) >> 4) | (data.r8(reg) << 4);
+            set_flags_znhc(data.r8(reg) == 0, 0, 0, 0);
+            return 2;  // 4 if hl
+        }
+        case SRL_r8: {  // shift right logically
+            CODE("srl r8");
+            bool old_lsb = data.r8(reg) & 0b1;
+            data.r8(reg) = (data.r8(reg) >> 1);  // pad with 0
+            set_flags_znhc(data.r8(reg) == 0, 0, 0, old_lsb);
+            return 2;  // 4 if hl
+        }
+    }
     return 0;
+}
+
+// loads test roms based on index
+// 00 - all
+// 01 - special
+// 02 - interrupts
+// 03 - op sp, hl
+// 04 - op r, imm
+// 05 - op rp
+// 06 - ld r, r
+// 07 - jr, jp, call, ret, rst
+// 08 - misc instructions
+// 09 - op r, r
+// 10 - bit ops
+// 11 - op a, [hl]
+void CPU::load_test_rom(uint8_t idx) { data.load_test_ROM(idx); }
+
+void CPU::run_daa() {
+    uint8_t old_a = data.a();
+    Flags old_flags = flags;
+    if (old_flags.n) {  // subtraction
+        uint8_t adjustment = (old_flags.h * 0x6) + (old_flags.c * 0x60);
+        data.a() -= adjustment;
+    } else {  // addition
+        uint8_t adjustment = (old_flags.h || ((data.a() & 0xf) > 0x9)) * 0x6;
+        if (old_flags.c || (data.a() > 0x99)) {
+            adjustment += 0x60;
+            flags.c = 1;
+        }
+        data.a() += adjustment;
+    }
+    flags.z = (data.a() == 0);
+    flags.h = 0;
+
+    // LOG_MISC_LINE("Reg A(0x" << int(old_a) << "), flags: z(" << old_flags.z << "), n("
+    //                          << old_flags.n << "), h(" << old_flags.h << "), c(" << old_flags.c
+    //                          << "), DAA output(0x" << int(data.a()) << ")");
+}
+
+void CPU::dump_state(std::ofstream& stream) {
+    uint8_t flag_byte = (flags.z << 7) | (flags.n << 6) | (flags.h << 5) | (flags.c << 4);
+
+    stream << std::hex << std::setfill('0');
+    stream << "A:" << std::setw(2) << (int)data.a();
+    stream << " F:" << std::setw(2) << (int)flag_byte;
+    stream << " B:" << std::setw(2) << (int)data.r8(0);
+    stream << " C:" << std::setw(2) << (int)data.r8(1);
+    stream << " D:" << std::setw(2) << (int)data.r8(2);
+    stream << " E:" << std::setw(2) << (int)data.r8(3);
+    stream << " H:" << std::setw(2) << (int)data.r8(4);
+    stream << " L:" << std::setw(2) << (int)data.r8(5);
+    stream << " SP:" << std::setw(4) << (int)data.SP;
+    stream << " PC:" << std::setw(4) << (int)data.get_PC();
+
+    stream << " PCMEM:" << std::setw(2) << (int)data.read_mem(data.get_PC());
+    stream << "," << std::setw(2) << (int)data.read_mem(data.get_PC() + 1);
+    stream << "," << std::setw(2) << (int)data.read_mem(data.get_PC() + 2);
+    stream << "," << std::setw(2) << (int)data.read_mem(data.get_PC() + 3);
+
+    stream << std::endl;
 }

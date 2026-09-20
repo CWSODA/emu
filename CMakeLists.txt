@@ -7,6 +7,7 @@ set(SOURCE_FILES
     main.cpp 
     cpu.cpp 
     calc_flag_and_ops.cpp
+    file_reader.cpp
     mem.cpp
 )
 

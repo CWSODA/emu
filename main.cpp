@@ -1,8 +1,10 @@
 #include "cpu.hpp"
+#include "logger.hpp"
 
 int main() {
     CPU cpu;
-    cpu.load_ROM("../test_cpu/individual/07-jr,jp,call,ret,rst.gb");
+    cpu.load_test_rom(1);
+    cpu.dump_state(log_misc());
 
     while (cpu.run());
 

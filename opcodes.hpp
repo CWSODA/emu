@@ -7,7 +7,7 @@ enum class OpState {
     CB,
 };
 
-enum OpCodeType {
+enum OpCode {
     NOP = 0,
     HALT = 0b0111'0110,
     LD_IMM16_SP = 0b0000'1000,
@@ -73,8 +73,20 @@ enum OpCodeType {
 
     DI = 0b1111'0011,  // disable interrupt
     EI = 0b1111'1011,  // enable interrupt, only after next instruction!
+    CB_prefix = 0xCB,
 
     /* ------------------ variable opcodes ------------------ */
     LD_r8_IMM8 = 0b00'000'110,
     LD_r16_IMM16 = 0b00'00'0001,
+};
+
+enum CBPrefixOpcode {
+    RLC_r8 = 0b00000,
+    RRC_r8 = 0b00001,
+    RL_r8 = 0b00010,
+    RR_r8 = 0b00011,
+    SLA_r8 = 0b00100,
+    SRA_r8 = 0b00101,
+    SWAP_r8 = 0b00110,
+    SRL_r8 = 0b00111,
 };

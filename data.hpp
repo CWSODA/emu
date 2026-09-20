@@ -15,6 +15,7 @@ struct Data {
     uint8_t& a() { return reg8[6]; }
     uint8_t& c() { return reg8[1]; }
 
+    // returns register values in order: B, C, D, E, H, L, [HL], A
     uint8_t& r8(uint8_t idx) {
         if (idx == 6) {
             return memory[get_hl()];
@@ -69,29 +70,21 @@ struct Data {
     uint16_t get_PC() { return PC; }
     void set_PC(uint16_t addr) {
         PC = addr;
-        printf("Setting PC to: 0x%04X\n", PC);
+        // printf("Setting PC to: 0x%04X\n", PC);
     }
     void signed_offset_PC(uint8_t byte) { set_PC(PC + (int8_t)byte); }
     void inc_PC() { PC++; }
 
     uint8_t read_mem(uint16_t addr);
     void set_mem(uint16_t addr, uint8_t val);
-    void load_ROM_from_path(const char* filename) {
-        std::ifstream file(filename, std::ios::binary);
-        if (!file) throw std::runtime_error("Cannot read ROM file!");
-
-        file.seekg(0, file.end);  // go to end of file
-        size_t ROM_size = file.tellg();
-
-        file.seekg(0, file.beg);  // back to start
-        file.read((char*)memory, ROM_size);
-    }
+    void load_ROM_from_path(const char* filename);
+    void load_test_ROM(uint8_t idx);
 
    private:
     // 8-bit registers
     uint8_t reg8[7];  // b, c, d, e, h, l, a registers
     uint16_t PC = 0x0100;
-    uint8_t memory[0xff'ff + 1];
+    uint8_t memory[0xff'ff + 1] = {};
 };
 
 inline std::string cvt_binary(uint8_t byte) {
