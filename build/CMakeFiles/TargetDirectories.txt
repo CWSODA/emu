@@ -1,3 +1,0 @@
-/Users/admin/projects/emu/build/CMakeFiles/emu.dir
-/Users/admin/projects/emu/build/CMakeFiles/edit_cache.dir
-/Users/admin/projects/emu/build/CMakeFiles/rebuild_cache.dir
