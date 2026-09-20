@@ -6,7 +6,7 @@
 /* -------------------- 01 - special -------------------- */
 /* ------------------- 02 - interrupts ------------------ */
 // 03 - op sp, hl
-// 04 - op r, imm
+/* ------------------- 04 - op r, imm ------------------- */
 /* --------------------- 05 - op rp --------------------- */
 /* -------------------- 06 - ld r, r -------------------- */
 /* ------------- 07 - jr, jp, call, ret, rst ------------ */
@@ -28,7 +28,6 @@ int main(int argc, char* argv[]) {
     while (cpu.run()) {
         cpu.dump_state(log_misc(), true);
     }
-    puts("\nCPU instruction count timeout");
 
     return 0;
 }

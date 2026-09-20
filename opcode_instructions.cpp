@@ -29,12 +29,13 @@ uint8_t CPU::calc_sub8(uint8_t a, uint8_t b) {
     return result;
 }
 uint8_t CPU::calc_sbc8(uint8_t a, uint8_t b) {
+    bool old_c = flags.c;
     flags.n = true;
-    flags.h = (a & 0x0f) < ((b & 0x0f) + 1);  // borrow from bit4
+    flags.h = (a & 0x0f) < ((b & 0x0f) + old_c);  // borrow from bit4
 
-    uint8_t result = a - b - flags.c;
+    uint8_t result = a - b - old_c;
     flags.z = (result == 0);
-    flags.c = a < (static_cast<uint16_t>(b) + 1);  // underflow
+    flags.c = (static_cast<uint16_t>(b) + old_c) > a;  // underflow
     return result;
 }
 uint8_t CPU::calc_and8(uint8_t a, uint8_t b) {

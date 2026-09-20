@@ -17,7 +17,7 @@
 #define CODE(...)
 #endif
 constexpr uint cpu_instr_limit = 1000e6;
-// constexpr uint cpu_instr_limit = 500e3;
+// constexpr uint cpu_instr_limit = 100;
 
 // F = flags register
 struct Flags {

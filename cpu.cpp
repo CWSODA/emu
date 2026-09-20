@@ -5,7 +5,6 @@
 
 bool CPU::run(bool stop_on_halt) {
     check_interrupt();
-    static bool just_halted = false;
     if (is_halted) {
         tick_timer(1);  // tick by 1 if halted
         return true;
