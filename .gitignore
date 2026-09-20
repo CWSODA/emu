@@ -13,3 +13,7 @@ build/
 
 # Directory metadata
 .directory
+
+# logs
+logs
+logs/**
