@@ -17,3 +17,6 @@ build/
 # logs
 logs
 logs/**
+
+# test roms
+gb-test-roms-master
