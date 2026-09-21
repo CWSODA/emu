@@ -69,7 +69,7 @@ clock_cycles CPU::parse_opcode() {
         }
         case HALT: {
             CODE("halt");
-            puts("halted!");
+            // puts("halted!");
             is_halted = true;
             return 0;
         }
@@ -118,14 +118,14 @@ clock_cycles CPU::parse_opcode() {
         /* ---------------- reg A stuff and flags --------------- */
         case RLCA: {
             CODE("RLCA");
-            uint8_t old_msb = data.a() & 0b1000'0000;
+            bool old_msb = data.a() & 0b1000'0000;
             data.a() = (data.a() << 1) | old_msb;
             set_flags_znhc(0, 0, 0, old_msb);
             return 1;
         }
         case RRCA: {
             CODE("RRCA");
-            uint8_t old_lsb = data.a() & 0b1;
+            bool old_lsb = data.a() & 0b1;
             data.a() = (data.a() >> 1) | (old_lsb << 7);
             set_flags_znhc(0, 0, 0, old_lsb);
             return 1;
@@ -506,6 +506,7 @@ clock_cycles CPU::handle_imm8(uint8_t byte) {
     switch (opcode) {
         case STOP_IMM8: {
             CODE("stop");
+            puts("stop");
             data.set_mem(0xff04, 0);  // reset timer counter
             is_stopped = true;
             return 0;
@@ -587,13 +588,12 @@ clock_cycles CPU::handle_imm8(uint8_t byte) {
         }
         case ADD_SP_IMM8: {
             CODE("add sp, imm8");
-            add_SP(byte);
+            data.SP = add_SP(byte);
             return 4;
         }
         case LD_HL_SP_IMM8: {
             CODE("ld hl, sp + imm8");
-            add_SP(byte);
-            data.set_hl(data.SP);
+            data.set_hl(add_SP(byte));
             return 3;
         }
     }

@@ -65,7 +65,7 @@ struct Data {
     uint16_t get_hl() { return (reg8[4] << 8) + reg8[5]; }
     void set_hl(uint16_t val) {
         reg8[4] = val >> 8;
-        reg8[5] = val;
+        reg8[5] = (val & 0xff);
     }
     uint16_t get_bc() { return (reg8[0] << 8) + reg8[1]; }
     uint16_t get_de() { return (reg8[2] << 8) + reg8[3]; }

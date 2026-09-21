@@ -16,7 +16,7 @@
 #else
 #define CODE(...)
 #endif
-constexpr uint cpu_instr_limit = 1000e6;
+constexpr uint64_t cpu_instr_limit = 1e12;
 // constexpr uint cpu_instr_limit = 100;
 
 // F = flags register
@@ -41,7 +41,7 @@ class CPU {
     void tick_timer(clock_cycles cycles);
     void inc_tima();
 
-    uint instr_count = 0;
+    uint64_t instr_count = 0;
     clock_cycles parse_opcode();
     clock_cycles parse_block0();
     clock_cycles parse_block3();
@@ -78,7 +78,7 @@ class CPU {
     }
     void ret();
     void call(uint16_t addr);
-    void add_SP(uint8_t byte);
+    uint16_t add_SP(uint8_t byte);
 
     /* ------------------- condition calls ------------------ */
     clock_cycles ret_if(bool cc);

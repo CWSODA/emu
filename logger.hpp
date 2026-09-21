@@ -5,7 +5,7 @@
 
 #define ENABLE_CPU_DUMP false
 
-#define ENABLE_LOG false
+#define ENABLE_LOG true
 #define ENABLE_LOG_SP false
 #define ENABLE_LOG_MEM false
 #define ENABLE_LOG_MISC false

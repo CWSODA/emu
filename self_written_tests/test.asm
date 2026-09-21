@@ -1,7 +1,8 @@
 SECTION "Test", ROM0[$0100]
     nop
 
-    ld a, $38
-    sub $49
+    ld hl, $7575
+    ld sp, $1110
+    ld hl, sp + $f0
 
     halt
