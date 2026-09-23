@@ -1,5 +1,6 @@
 #pragma once
 #include <fstream>
+#include <iostream>
 
 // please ignore this horrible way of logging :>
 

@@ -16,18 +16,18 @@ void Data::load_ROM_from_path(const char* filename) {
 }
 
 const char* test_roms[] = {
-    "../test_cpu/cpu_instrs.gb",
-    "../test_cpu/individual/01-special.gb",
-    "../test_cpu/individual/02-interrupts.gb",
-    "../test_cpu/individual/03-op sp,hl.gb",
-    "../test_cpu/individual/04-op r,imm.gb",
-    "../test_cpu/individual/05-op rp.gb",
-    "../test_cpu/individual/06-ld r,r.gb",
-    "../test_cpu/individual/07-jr,jp,call,ret,rst.gb",
-    "../test_cpu/individual/08-misc instrs.gb",
-    "../test_cpu/individual/09-op r,r.gb",
-    "../test_cpu/individual/10-bit ops.gb",
-    "../test_cpu/individual/11-op a,(hl).gb",
+    "../gb-test-roms-master/cpu_instrs/cpu_instrs.gb",
+    "../gb-test-roms-master/cpu_instrs/individual/01-special.gb",
+    "../gb-test-roms-master/cpu_instrs/individual/02-interrupts.gb",
+    "../gb-test-roms-master/cpu_instrs/individual/03-op sp,hl.gb",
+    "../gb-test-roms-master/cpu_instrs/individual/04-op r,imm.gb",
+    "../gb-test-roms-master/cpu_instrs/individual/05-op rp.gb",
+    "../gb-test-roms-master/cpu_instrs/individual/06-ld r,r.gb",
+    "../gb-test-roms-master/cpu_instrs/individual/07-jr,jp,call,ret,rst.gb",
+    "../gb-test-roms-master/cpu_instrs/individual/08-misc instrs.gb",
+    "../gb-test-roms-master/cpu_instrs/individual/09-op r,r.gb",
+    "../gb-test-roms-master/cpu_instrs/individual/10-bit ops.gb",
+    "../gb-test-roms-master/cpu_instrs/individual/11-op a,(hl).gb",
 };
 void Data::load_test_ROM(uint8_t idx) {
     auto filename = test_roms[idx];

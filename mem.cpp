@@ -1,5 +1,6 @@
 #include "data.hpp"
 #include "logger.hpp"
+#include "graphics/ppu.hpp"
 
 constexpr uint16_t DIV_ADDR = 0xff04;   // div register
 constexpr uint16_t TIMA_ADDR = 0xff05;  // timer counter
@@ -16,12 +17,10 @@ void Data::set_mem(uint16_t addr, uint8_t val) {
         char c = static_cast<char>(val);
         log() << c;
         putc(c, stdout);
-    }
-    if (addr == DIV_ADDR) {  // timer div reg, all writes reset
+    } else if (addr == DIV_ADDR) {  // timer div reg, all writes reset
         memory[addr] = 0x00;
         return;
-    }
-    if (addr == TAC_ADDR) {  // set clock divider
+    } else if (addr == TAC_ADDR) {  // set clock divider
         switch (val & 0b11) {
             case 0b00: {
                 clock_divider = 256;
@@ -40,6 +39,19 @@ void Data::set_mem(uint16_t addr, uint8_t val) {
                 break;
             }
         }
+    } else if (addr == 0xff46) {  // DMA copy to OAM, 160 cycles
+        // copy from 0xXX00-0xXX9f to 0xfe00-0xfe9f
+        memcpy(&memory[0xfe00], &memory[val * 0x100], 0x9f + 1);
+        puts("DMA copy");
+    } else if (addr == 0xff40) {  // LCD control register
+        printf("Setting LCDC to %s\n", cvt_binary(val).c_str());
+        if (val & 0b1000'0000) {
+            dump_mem();  // LCB enabled
+            static PPU ppu(memory);
+            ppu.start_frame();
+        }
+    } else if (addr >= 0xfe00 && addr <= 0xfe9f) {
+        puts("writing to OAM");
     }
     LOG_MEM_LINE("set mem: 0x" << addr);
     memory[addr] = val;
@@ -56,5 +68,12 @@ void Data::inc_TIMA() {
         memory[TIMA_ADDR] = memory[TMA_ADDR];
     } else {
         memory[TIMA_ADDR]++;
+    }
+}
+
+void Data::dump_mem() {
+    auto file = std::ofstream("../logs/mem_dump");
+    for (int x = 0; x < 0xffff + 1; x++) {
+        file << memory[x];
     }
 }

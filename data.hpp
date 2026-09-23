@@ -11,6 +11,7 @@ constexpr uint16_t IE_ADDR = 0xffff;  // interrupt enabled
 // stores and handles register/memory data
 struct Data {
     Data() {}
+    void dump_mem();
 
     // 16-bit
     uint16_t SP = 0xfffe;
