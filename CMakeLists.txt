@@ -11,6 +11,7 @@ set(SOURCE_FILES
     interrupts.cpp
     file_reader.cpp
     mem.cpp
+    graphics/ppu.cpp
 )
 
 # Add executable target with source files listed in SOURCE_FILES variable

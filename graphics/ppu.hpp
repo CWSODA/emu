@@ -1,9 +1,15 @@
+#pragma once
 #include <stdlib.h>
+#include "tile.hpp"
 #include "../logger.hpp"
 
 constexpr uint16_t OAM_START = 0xfe00;
 constexpr uint16_t OAM_END = 0xfe9f;
 constexpr uint16_t LCDC_ADDR = 0xff40;
+
+constexpr uint16_t VRAM_START = 0x8000;
+constexpr uint16_t VRAM_END = 0x97ff;
+constexpr int TILE_COUNT = 384;
 
 // STAT reg
 constexpr uint16_t STAT_ADDR = 0xff44;
@@ -30,32 +36,15 @@ class PPU {
     }
     uint8_t LYC;
 
+    void print_VRAM();
+    void print_tiling(Tile* tiles, int width, int height, const char* path);
+
    private:
     uint8_t* mem;
     uint16_t scanline_count = 0;
     bool y_cond = false;
 
     void scan_OAM();
+    void background();
+    Tile get_tile(uint8_t idx);
 };
-
-void PPU::scan_OAM() {  // 80 dots
-    // check LCDC
-    uint8_t LCDC = mem[LCDC_ADDR];
-    bool is_16 = LCDC & 0b100;
-
-    // scan all 40 objects
-    for (int idx = 0; idx < 40; idx += 4) {
-        uint8_t y_pos = mem[OAM_START + idx];
-        uint8_t x_pos = mem[OAM_START + idx + 1];
-        uint8_t tile_idx = mem[OAM_START + idx + 2];
-        uint8_t attribs = mem[OAM_START + idx + 3];
-
-        // check if within scanline
-        int y_min = scanline_count + 16;
-        int y_max = scanline_count + 16 + (8 * is_16);
-        if ((y_pos >= y_min) && (y_pos <= y_max)) {
-            // within
-            std::cout << "Obj " << idx << '\n';
-        }
-    }
-}

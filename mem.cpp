@@ -9,6 +9,9 @@ constexpr uint16_t TAC_ADDR = 0xff07;   // timer control
 
 uint8_t Data::read_mem(uint16_t addr) {
     LOG_MEM_LINE("read mem: 0x" << addr);
+    if (addr == 0xff41) {
+        puts("stat");
+    }
     return memory[addr];
 }
 
@@ -49,7 +52,10 @@ void Data::set_mem(uint16_t addr, uint8_t val) {
             dump_mem();  // LCB enabled
             static PPU ppu(memory);
             ppu.start_frame();
+            ppu.print_VRAM();
         }
+    } else if (addr == 0xff45) {
+        puts("changing compare");
     } else if (addr >= 0xfe00 && addr <= 0xfe9f) {
         puts("writing to OAM");
     }
@@ -76,4 +82,5 @@ void Data::dump_mem() {
     for (int x = 0; x < 0xffff + 1; x++) {
         file << memory[x];
     }
+    file.close();
 }
