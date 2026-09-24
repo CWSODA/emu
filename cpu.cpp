@@ -235,11 +235,11 @@ clock_cycles CPU::parse_opcode() {
             uint8_t dest = (opcode >> 3) & 0b111;
             uint8_t src = opcode & 0b111;
             data.r8(dest) = data.r8(src);
-            return 1;
+            return (dest == 6 || src == 6) ? 2 : 1;  // check for [hl] access
         }
         case 0b10: {  // 8-bit arithmetic on reg A
             parse_8bit_arith();
-            return 1;
+            return ((opcode & 0b111) == 6) ? 2 : 1;  // check for [hl] access
         }
         case 0b11: {
             return parse_block3();
@@ -322,8 +322,7 @@ clock_cycles CPU::parse_block0() {
         data.r8(reg) += 1;
         flags.z = (data.r8(reg) == 0);
         flags.n = false;
-        // printf("Reg inc (%u): %02X\n", reg, data.r8(reg));
-        return 1;
+        return (reg == 6) ? 3 : 1;
     }
     if (last_three == 0b101) {  // dec r8
         CODE("dec r8");
@@ -332,8 +331,7 @@ clock_cycles CPU::parse_block0() {
         data.r8(reg) -= 1;
         flags.z = (data.r8(reg) == 0);
         flags.n = true;
-        // printf("Reg dec (%u): %02X\n", reg, data.r8(reg));
-        return 1;
+        return (reg == 6) ? 3 : 1;
     }
     if (last_nibble == 0b0010) {  // ld [r16mem], a
         // r16mem: bc, de, hl+, hl-
@@ -532,7 +530,7 @@ clock_cycles CPU::handle_imm8(uint8_t byte) {
         case LD_r8_IMM8: {  // 2 cycles
             CODE("ld r8, imm8");
             data.r8(r8_addr) = byte;
-            return 2;
+            return (r8_addr == 6) ? 3 : 2;
         }
         /* ------------------- reg a imm8 ops ------------------- */
         case ADD_A_IMM8: {
@@ -611,17 +609,17 @@ clock_cycles CPU::handle_cb(uint8_t byte) {
             flags.z = !(data.r8(reg) & (1 << bit_idx));
             flags.h = 1;
             flags.n = 0;
-            return (reg == 6) ? 4 : 2;  // 4 if hl
+            return (reg == 6) ? 3 : 2;
         }
         case 0b10: {
             CODE("res b3, r8");  // set bit b3 to zero
             data.r8(reg) &= ~(1 << bit_idx);
-            return (reg == 6) ? 4 : 2;  // 4 if hl
+            return (reg == 6) ? 4 : 2;
         }
         case 0b11: {
             CODE("set b3, r8");
             data.r8(reg) |= (1 << bit_idx);
-            return (reg == 6) ? 4 : 2;  // 4 if hl
+            return (reg == 6) ? 4 : 2;
         }
     }
     // middle 3 bits is bit-index
