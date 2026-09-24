@@ -1,5 +1,9 @@
 #include "ppu.hpp"
 
+void PPU::set_config(uint8_t LCDC) {}
+
+void PPU::tick(uint8_t cycles) {}
+
 void PPU::print_tiling(Tile* tiles, int width, int height, const char* path) {
     std::ofstream img(path, std::ios::binary);
     img << "P5\n" << (width * 8) << " " << (height * 8) << "\n255\n";
@@ -23,15 +27,15 @@ void PPU::print_tiling(Tile* tiles, int width, int height, const char* path) {
 
 void PPU::scan_OAM() {  // 80 dots
     // check LCDC
-    uint8_t LCDC = mem[LCDC_ADDR];
+    uint8_t LCDC = memory[LCDC_ADDR];
     bool is_16 = LCDC & 0b100;
 
     // scan all 40 objects
     for (int idx = 0; idx < 40; idx += 4) {
-        uint8_t y_pos = mem[OAM_START + idx];
-        uint8_t x_pos = mem[OAM_START + idx + 1];
-        uint8_t tile_idx = mem[OAM_START + idx + 2];
-        uint8_t attribs = mem[OAM_START + idx + 3];
+        uint8_t y_pos = memory[OAM_START + idx];
+        uint8_t x_pos = memory[OAM_START + idx + 1];
+        uint8_t tile_idx = memory[OAM_START + idx + 2];
+        uint8_t attribs = memory[OAM_START + idx + 3];
 
         // check if within scanline
         int y_min = scanline_count + 16;
@@ -56,8 +60,8 @@ void PPU::print_VRAM() {
         // 2 bytes per line, 2-bit color
         Tile tile;
         for (int y = 0; y < 8; y++) {
-            uint8_t LSB = mem[addr + 2 * y];
-            uint8_t MSB = mem[addr + 2 * y + 1];
+            uint8_t LSB = memory[addr + 2 * y];
+            uint8_t MSB = memory[addr + 2 * y + 1];
 
             for (int x = 0; x < 8; x++) {
                 uint8_t val = LSB & (1 << x) + 2 * (MSB & (1 << x));
@@ -83,7 +87,7 @@ void PPU::background() {
     Tile tiles[1 + BG_END - BG_START];
     int count = 0;
     for (int addr = BG_START; addr <= BG_END; addr++) {
-        tiles[count++] = get_tile(mem[addr]);
+        tiles[count++] = get_tile(memory[addr]);
     }
     print_tiling(tiles, 32, 32, "../logs/bg.pgm");
 }
@@ -93,8 +97,8 @@ Tile PPU::get_tile(uint8_t idx) {
     Tile tile;
     uint16_t addr = VRAM_START + idx * 16;
     for (int y = 0; y < 8; y++) {
-        uint8_t LSB = mem[addr + 2 * y];
-        uint8_t MSB = mem[addr + 2 * y + 1];
+        uint8_t LSB = memory[addr + 2 * y];
+        uint8_t MSB = memory[addr + 2 * y + 1];
 
         for (int x = 0; x < 8; x++) {
             uint8_t val = LSB & (1 << x) + 2 * (MSB & (1 << x));

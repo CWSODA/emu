@@ -98,9 +98,9 @@ void CPU::ret() {
 void CPU::call(uint16_t addr) {  // store data.PC in data.SP and jump to addr
     LOG_SP_LINE("Call from SP(0x" << data.SP << ") saving PC(0x" << data.get_PC() << ")");
     uint16_t ret_addr = data.get_PC();
-    data.set_mem(--data.SP, ret_addr >> 8);    // MSB
-    data.set_mem(--data.SP, ret_addr & 0xff);  // LSB
-    data.set_PC(addr);                         // jp imm16
+    mm->set_mem(--data.SP, ret_addr >> 8);    // MSB
+    mm->set_mem(--data.SP, ret_addr & 0xff);  // LSB
+    data.set_PC(addr);                        // jp imm16
 }
 uint16_t CPU::add_SP(uint8_t byte) {  // adds as signed byte and sets flag
     flags.z = 0;

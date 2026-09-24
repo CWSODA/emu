@@ -1,10 +1,9 @@
 #include <fstream>
 #include <cstdint>
 #include <vector>
+#include "gameboy.hpp"
 
-#include "data.hpp"
-
-void Data::load_ROM_from_path(const char* filename) {
+void GameBoy::load_rom_from_path(const char* filename) {
     std::ifstream file(filename, std::ios::binary);
     if (!file) throw std::runtime_error("Cannot read ROM file!");
 
@@ -29,7 +28,7 @@ const char* test_roms[] = {
     "../gb-test-roms-master/cpu_instrs/individual/10-bit ops.gb",
     "../gb-test-roms-master/cpu_instrs/individual/11-op a,(hl).gb",
 };
-void Data::load_test_ROM(uint8_t idx) {
+void GameBoy::load_test_rom(uint8_t idx) {
     auto filename = test_roms[idx];
     std::ifstream file(filename, std::ios::binary);
     if (!file) throw std::runtime_error("Cannot read ROM file!");

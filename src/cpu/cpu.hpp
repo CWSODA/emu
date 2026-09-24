@@ -5,9 +5,11 @@
 #include <iostream>
 #include <iomanip>
 
-#include "data.hpp"
+#include "cpu_data.hpp"
+#include "memory.hpp"
 #include "opcodes.hpp"
 #include "logger.hpp"
+#include "clock.hpp"
 
 #define DEBUG_OPCODE
 #define DEBUG_INSTR
@@ -31,6 +33,10 @@ typedef uint8_t clock_cycles;
 class CPU {
    public:
     CPU() {}
+    void init(MemoryManager* mm, Clock* clock) {
+        this->mm = mm;
+        this->clock = clock;
+    }
     void load_rom(std::string path) { data.load_ROM_from_path(path.c_str()); }
     void load_test_rom(uint8_t idx);
     bool run(bool stop_on_halt = false);
@@ -38,8 +44,19 @@ class CPU {
     void dump_state(std::ofstream& stream, bool show_flags = false);
 
    private:
-    void tick_timer(clock_cycles cycles);
-    void inc_tima();
+    Clock* clock;
+    /* ------------------------ data ------------------------ */
+    CPUData data;
+    MemoryManager* mm;
+    uint8_t read_r8(uint8_t idx);
+    void set_r8(uint8_t idx, uint8_t val);
+
+    /* ------------------- opcode parsing ------------------- */
+    uint8_t opcode;
+    OpState op_state = OpState::READY;
+    uint16_t imm16;
+    uint8_t r16_addr;  // for imm16 stuff
+    uint8_t r8_addr;   // for imm8 stuff, also used for jr cond
 
     uint64_t instr_count = 0;
     clock_cycles parse_opcode();
@@ -66,15 +83,8 @@ class CPU {
     uint8_t calc_xor8(uint8_t a, uint8_t b);
     uint8_t calc_or8(uint8_t a, uint8_t b);
 
-    uint8_t opcode;
-    OpState op_state = OpState::READY;
-    uint16_t imm16;
-    uint8_t r16_addr;  // for imm16 stuff
-    uint8_t r8_addr;   // for imm8 stuff, also used for jr cond
-
-    Data data;
     uint16_t read_mem16(uint16_t addr) {
-        return data.read_mem(addr) | (data.read_mem(addr + 1) << 8);
+        return mm->read_mem(addr) | (mm->read_mem(addr + 1) << 8);
     }
     void ret();
     void call(uint16_t addr);

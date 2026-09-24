@@ -1,0 +1,6 @@
+./emu ../gb-test-roms-master/instr_timing/instr_timing.gb   
+./emu ../gb-test-roms-master/mem_timing/individual/01-read_timing.gb
+./emu ../gb-test-roms-master/mem_timing/individual/02-write_timing.gb 
+./emu ../gb-test-roms-master/interrupt_time/interrupt_time.gb
+
+./emu ../misc_test/tetris.gb 

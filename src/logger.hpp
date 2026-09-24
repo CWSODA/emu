@@ -61,3 +61,11 @@ inline std::ofstream& log_opcode() {
 #else
 #define LOG_OPCODE_LINE(s)
 #endif
+
+inline std::string cvt_binary(uint8_t byte) {
+    std::string out(8, '0');
+    for (int x = 0; x < 8; x++) {
+        out.at(7 - x) = (byte & (1 << x)) ? '1' : '0';
+    }
+    return out;
+}
