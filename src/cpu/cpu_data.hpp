@@ -35,6 +35,6 @@ struct CPUData {
     void load_test_ROM(uint8_t idx);
 
    private:
-    uint8_t reg8[8];  // b, c, d, e, h, l, a registers
+    uint8_t reg8[8];  // b, c, d, e, h, l, dummy [hl], a registers
     uint16_t PC = PC_START_ADDR;
 };

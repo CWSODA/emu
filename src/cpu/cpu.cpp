@@ -234,7 +234,7 @@ clock_cycles CPU::parse_opcode() {
             CODE("ld r8, r8");
             uint8_t dest = (opcode >> 3) & 0b111;
             uint8_t src = opcode & 0b111;
-            set_r8(dest, src);
+            set_r8(dest, read_r8(src));
             return (dest == 6 || src == 6) ? 2 : 1;  // check for [hl] access
         }
         case 0b10: {  // 8-bit arithmetic on reg A

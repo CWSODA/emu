@@ -2,7 +2,10 @@
 
 // returns register values in order: B, C, D, E, H, L, [HL], A
 // [hl] is a dummy register. use CPU get_r8/set_r8 for access
-uint8_t& CPUData::r8(uint8_t idx) { return reg8[idx]; }
+uint8_t& CPUData::r8(uint8_t idx) {
+    if (idx == 6) puts("ERROR");
+    return reg8[idx];
+}
 
 // registers in order: bc, de, hl, sp
 uint16_t CPUData::get_r16(uint8_t idx) {
