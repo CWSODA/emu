@@ -611,17 +611,17 @@ clock_cycles CPU::handle_cb(uint8_t byte) {
             flags.z = !(data.r8(reg) & (1 << bit_idx));
             flags.h = 1;
             flags.n = 0;
-            return 2;  // 3 if hl
+            return (reg == 6) ? 4 : 2;  // 4 if hl
         }
         case 0b10: {
             CODE("res b3, r8");  // set bit b3 to zero
             data.r8(reg) &= ~(1 << bit_idx);
-            return 2;  // 4 if hl
+            return (reg == 6) ? 4 : 2;  // 4 if hl
         }
         case 0b11: {
             CODE("set b3, r8");
             data.r8(reg) |= (1 << bit_idx);
-            return 2;  // 4 if hl
+            return (reg == 6) ? 4 : 2;  // 4 if hl
         }
     }
     // middle 3 bits is bit-index
@@ -631,35 +631,35 @@ clock_cycles CPU::handle_cb(uint8_t byte) {
             bool old_msb = data.r8(reg) & 0b1000'0000;
             data.r8(reg) = (data.r8(reg) << 1) | old_msb;
             set_flags_znhc(data.r8(reg) == 0, 0, 0, old_msb);
-            return 2;  // 4 if hl
+            return (reg == 6) ? 4 : 2;  // 4 if hl
         }
         case RRC_r8: {
             CODE("rrc r8");
             bool old_lsb = data.r8(reg) & 0b1;
             data.r8(reg) = (data.r8(reg) >> 1) | (old_lsb << 7);
             set_flags_znhc(data.r8(reg) == 0, 0, 0, old_lsb);
-            return 2;  // 4 if hl
+            return (reg == 6) ? 4 : 2;  // 4 if hl
         }
         case RL_r8: {
             CODE("rl r8");
             bool old_msb = data.r8(reg) & 0b1000'0000;
             data.r8(reg) = (data.r8(reg) << 1) | flags.c;
             set_flags_znhc(data.r8(reg) == 0, 0, 0, old_msb);
-            return 2;  // 4 if hl
+            return (reg == 6) ? 4 : 2;  // 4 if hl
         }
         case RR_r8: {
             CODE("rr r8");
             bool old_lsb = data.r8(reg) & 0b1;
             data.r8(reg) = (data.r8(reg) >> 1) | (flags.c << 7);
             set_flags_znhc(data.r8(reg) == 0, 0, 0, old_lsb);
-            return 2;  // 4 if hl
+            return (reg == 6) ? 4 : 2;  // 4 if hl
         }
         case SLA_r8: {  // shift left arithmetically
             CODE("sla r8");
             bool old_msb = data.r8(reg) & 0b1000'0000;
             data.r8(reg) = (data.r8(reg) << 1);  // pad with 0
             set_flags_znhc(data.r8(reg) == 0, 0, 0, old_msb);
-            return 2;  // 4 if hl
+            return (reg == 6) ? 4 : 2;  // 4 if hl
         }
         case SRA_r8: {  // shift right arithmetically
             CODE("sra r8");
@@ -667,20 +667,20 @@ clock_cycles CPU::handle_cb(uint8_t byte) {
             bool old_msb = data.r8(reg) & 0b1000'0000;
             data.r8(reg) = (data.r8(reg) >> 1) | (old_msb << 7);  // keep MSB
             set_flags_znhc(data.r8(reg) == 0, 0, 0, old_lsb);
-            return 2;  // 4 if hl
+            return (reg == 6) ? 4 : 2;  // 4 if hl
         }
         case SWAP_r8: {  // swap upper and lower 4 bits
             CODE("swap r8");
             data.r8(reg) = (data.r8(reg) >> 4) | (data.r8(reg) << 4);
             set_flags_znhc(data.r8(reg) == 0, 0, 0, 0);
-            return 2;  // 4 if hl
+            return (reg == 6) ? 4 : 2;  // 4 if hl
         }
         case SRL_r8: {  // shift right logically
             CODE("srl r8");
             bool old_lsb = data.r8(reg) & 0b1;
             data.r8(reg) = (data.r8(reg) >> 1);  // pad with 0
             set_flags_znhc(data.r8(reg) == 0, 0, 0, old_lsb);
-            return 2;  // 4 if hl
+            return (reg == 6) ? 4 : 2;  // 4 if hl
         }
     }
     return 0;
