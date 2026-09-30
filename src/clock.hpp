@@ -11,7 +11,7 @@ class Clock {
     }
     void tick(uint8_t cycles) {
         ppu->tick(cycles);
-        ;
+        timer->tick(cycles);
     }
 
    private:

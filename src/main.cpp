@@ -1,7 +1,12 @@
 #include "gameboy.hpp"
 #include "logger.hpp"
+#include "render.hpp"
 
 int main(int argc, char* argv[]) {
+    SDLApp app;
+    // app.run();
+    // return 0;
+
     GameBoy gb;
     if (argc == 2) {  // loads rom if argument given
         gb.load_rom_from_path(argv[1]);

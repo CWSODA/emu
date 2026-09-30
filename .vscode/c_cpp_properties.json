@@ -1,0 +1,14 @@
+{
+    "configurations": [
+        {
+            "name": "Mac",
+            "includePath": [
+                "${workspaceFolder}/**",
+                "/opt/homebrew/include"
+            ],
+            "defines": [],
+            "cStandard": "c17"
+        }
+    ],
+    "version": 4
+}

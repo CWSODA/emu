@@ -14,7 +14,6 @@ void CPU::check_interrupt() {
     uint8_t interrupts = mm->read_mem(IE_ADDR) & IF;
     if (interrupts == 0) return;
     IME = false;  // disable nested interrupts
-    puts("int");
 
     // call handler, lowest bit has higher priority
     for (int idx = 0; idx <= 4; idx++) {

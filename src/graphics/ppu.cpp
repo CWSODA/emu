@@ -1,8 +1,35 @@
 #include "ppu.hpp"
 
 void PPU::set_config(uint8_t LCDC) {}
+void PPU::set_lcd_stat(uint8_t LCDC) {}
 
-void PPU::tick(uint8_t cycles) {}
+void PPU::tick(uint8_t cycles) {
+    // one tick is 4 PPU ticks/dots
+    dots += cycles * 4;
+
+    // 456 per line
+    // OAM scan - 80 dots
+    // H-Blank - 376 dots
+    // V-Blank - 4560 dots (10 lines)
+    int line_dots = dots % 456;
+    if (ppu_state != OAM_SCAN && line_dots < 80) {
+        set_ppu_state(OAM_SCAN);
+        scanline++;
+        memory[LY_ADDR] = scanline;
+        scan_OAM();
+
+        if (scanline == LYC) {  // req interrupt
+            memory[IF_ADDR] |= (1 << 1);
+        }
+        return;
+    }
+    if (ppu_state != SEND_PIXEL && line_dots > 80) {
+        set_ppu_state(SEND_PIXEL);
+        print_background();
+        puts("printing");
+        return;
+    }
+}
 
 void PPU::print_tiling(Tile* tiles, int width, int height, const char* path) {
     std::ofstream img(path, std::ios::binary);
@@ -30,21 +57,28 @@ void PPU::scan_OAM() {  // 80 dots
     uint8_t LCDC = memory[LCDC_ADDR];
     bool is_16 = LCDC & 0b100;
 
+    scanline_obj_n = 0;  // reset n
+
     // scan all 40 objects
+    int y_min = scanline + 16;
+    int y_max = scanline + 16 + (8 * is_16);
     for (int idx = 0; idx < 40; idx += 4) {
         uint8_t y_pos = memory[OAM_START + idx];
-        uint8_t x_pos = memory[OAM_START + idx + 1];
-        uint8_t tile_idx = memory[OAM_START + idx + 2];
-        uint8_t attribs = memory[OAM_START + idx + 3];
 
         // check if within scanline
-        int y_min = scanline_count + 16;
-        int y_max = scanline_count + 16 + (8 * is_16);
         if ((y_pos >= y_min) && (y_pos <= y_max)) {
-            // within
             std::cout << "Obj " << idx << '\n';
+            scanline_objs[scanline_obj_n] = OAMObject{
+                .y_pos = y_pos,
+                .x_pos = memory[OAM_START + idx + 1],
+                .tile_idx = memory[OAM_START + idx + 2],
+                .attribs = memory[OAM_START + idx + 3],
+            };
+            scanline_obj_n++;
+            if (scanline_obj_n == 11) break;
         }
     }
+    scanline_obj_n--;
 }
 
 constexpr int pixel_w = 16;
@@ -75,7 +109,7 @@ void PPU::print_VRAM() {
     print_tiling(tiles, pixel_w, pixel_h, "../logs/tiled_frame.pgm");
 
     img_line.close();
-    background();
+    print_background();
 }
 
 // $9800-$9BFF and $9C00-$9FFF
@@ -83,7 +117,7 @@ void PPU::print_VRAM() {
 // 256x256 pixels
 constexpr uint16_t BG_START = 0x9800;
 constexpr uint16_t BG_END = 0x9bff;
-void PPU::background() {
+void PPU::print_background() {
     Tile tiles[1 + BG_END - BG_START];
     int count = 0;
     for (int addr = BG_START; addr <= BG_END; addr++) {

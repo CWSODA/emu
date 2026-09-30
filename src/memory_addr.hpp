@@ -5,12 +5,13 @@ constexpr uint16_t PC_START_ADDR = 0x100;
 constexpr uint16_t IF_ADDR = 0xff0f;  // interrupt req
 constexpr uint16_t IE_ADDR = 0xffff;  // interrupt enabled
 
-constexpr uint16_t STAT_ADDR = 0xff44;
+constexpr uint16_t LY_ADDR = 0xff44;
 
 /* ------------------------- PPU ------------------------ */
 constexpr uint16_t OAM_START = 0xfe00;
 constexpr uint16_t OAM_END = 0xfe9f;
-constexpr uint16_t LCDC_ADDR = 0xff40;
+constexpr uint16_t LCDC_ADDR = 0xff40;      // LCD control
+constexpr uint16_t LCD_STAT_ADDR = 0xff41;  // determines stat interrupts
 
 constexpr uint16_t VRAM_START = 0x8000;
 constexpr uint16_t VRAM_END = 0x97ff;

@@ -42,11 +42,13 @@ void MemoryManager::set_mem(uint16_t addr, uint8_t val) {
         // copy from 0xXX00-0xXX9f to 0xfe00-0xfe9f
         memcpy(&memory[0xfe00], &memory[val * 0x100], 0x9f + 1);
         puts("DMA copy");
-    } else if (addr == 0xff40) {  // LCD control register
+    } else if (addr == LCDC_ADDR) {  // LCD control register
         // std::cout << "LCDC: " << cvt_binary(val) << '\n';
         ppu->set_config(val);
-        ppu->background();
+        ppu->print_background();
         ppu->print_VRAM();
+    } else if (addr == LCD_STAT_ADDR) {
+        ppu->set_lcd_stat(val);
     } else if (addr == 0xff45) {
         ppu->LYC = val;
     } else if (addr >= 0xfe00 && addr <= 0xfe9f) {
@@ -57,7 +59,7 @@ void MemoryManager::set_mem(uint16_t addr, uint8_t val) {
 }
 
 void MemoryManager::dump_mem() {
-    auto file = std::ofstream("../logs/mem_dump");
+    auto file = std::ofstream("../logs/mem_dump.hex");
     for (int x = 0; x < 0xffff + 1; x++) {
         file << memory[x];
     }
