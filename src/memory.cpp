@@ -52,7 +52,7 @@ void MemoryManager::set_mem(uint16_t addr, uint8_t val) {
     } else if (addr == 0xff45) {
         ppu->LYC = val;
     } else if (addr >= 0xfe00 && addr <= 0xfe9f) {
-        puts("writing to OAM");
+        // puts("writing to OAM");
     }
     LOG_MEM_LINE("set mem: 0x" << addr);
     memory[addr] = val;
