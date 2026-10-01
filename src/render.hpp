@@ -6,7 +6,7 @@ class SDLApp {
    public:
     SDLApp() {}
     void init();
-    void update_framebuffer(uint8_t pixels, int width, int height);
+    void update_framebuffer(const uint8_t* pixels);
     bool poll_input();  // updates inputs and also quit events
 
     ~SDLApp() {
@@ -17,22 +17,22 @@ class SDLApp {
     }
 
    private:
-    int* gFrameBuffer;
     SDL_Window* gSDLWindow;
     SDL_Renderer* gSDLRenderer;
     SDL_Texture* gSDLTexture;
     static int gDone;
-    const int WINDOW_WIDTH = 1920 / 2;
-    const int WINDOW_HEIGHT = 1080 / 2;
+    // int tex_width = 160;
+    // int tex_height = 144;
+    int tex_width = 32 * 8;
+    int tex_height = 32 * 8;
 };
 
-void SDLApp::update_framebuffer(uint8_t pixels, int width, int height) {
+void SDLApp::update_framebuffer(const uint8_t* pixels) {
     char* sdl_pixels;
     int pitch;
 
     SDL_LockTexture(gSDLTexture, NULL, (void**)&sdl_pixels, &pitch);
-    for (int i = 0, sp = 0, dp = 0; i < WINDOW_HEIGHT; i++, dp += WINDOW_WIDTH, sp += pitch)
-        memcpy(sdl_pixels + sp, gFrameBuffer + dp, WINDOW_WIDTH * 4);
+    memcpy(sdl_pixels, pixels, tex_width * tex_height * 4);  // 4 bytes per pixel
 
     SDL_UnlockTexture(gSDLTexture);
     SDL_RenderTexture(gSDLRenderer, gSDLTexture, NULL, NULL);
@@ -57,13 +57,15 @@ void SDLApp::init() {
         throw std::runtime_error("Failed to initiate SDL!");
     }
 
-    gFrameBuffer = new int[WINDOW_WIDTH * WINDOW_HEIGHT];
-    gSDLWindow = SDL_CreateWindow("SDL3 window", WINDOW_WIDTH, WINDOW_HEIGHT, 0);
+    gSDLWindow = SDL_CreateWindow("SDL3 window", tex_width * 2, tex_height * 2, 0);
     gSDLRenderer = SDL_CreateRenderer(gSDLWindow, NULL);
     gSDLTexture = SDL_CreateTexture(gSDLRenderer, SDL_PIXELFORMAT_ABGR8888,
-                                    SDL_TEXTUREACCESS_STREAMING, WINDOW_WIDTH, WINDOW_HEIGHT);
+                                    SDL_TEXTUREACCESS_STREAMING, tex_width, tex_height);
+    // SDL_SetTextureScaleMode(gSDLTexture, SDL_SCALEMODE_NEAREST);
+    // SDL_SetTextureScaleMode(gSDLTexture, SDL_SCALEMODE_PIXELART);
+    SDL_SetTextureScaleMode(gSDLTexture, SDL_SCALEMODE_LINEAR);
 
-    if (!gFrameBuffer || !gSDLWindow || !gSDLRenderer || !gSDLTexture) {
+    if (!gSDLWindow || !gSDLRenderer || !gSDLTexture) {
         throw std::runtime_error("Failed to initiate SDL rendering pipeline!");
     }
 }

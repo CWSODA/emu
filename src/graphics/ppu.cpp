@@ -3,6 +3,13 @@
 void PPU::set_config(uint8_t LCDC) {}
 void PPU::set_lcd_stat(uint8_t LCDC) {}
 
+void PPU::init(uint8_t* memory) {
+    this->memory = memory;
+    for (auto& p : frame) {
+        p = ColorRGBA::from_RGB(0, 0, 255);  // initialize
+    }
+}
+
 void PPU::tick(uint8_t cycles) {
     // one tick is 4 PPU ticks/dots
     dots += cycles * 4;
@@ -25,8 +32,9 @@ void PPU::tick(uint8_t cycles) {
     }
     if (ppu_state != SEND_PIXEL && line_dots > 80) {
         set_ppu_state(SEND_PIXEL);
+        draw_background();
         print_background();
-        puts("printing");
+        is_frame_ready = true;
         return;
     }
 }

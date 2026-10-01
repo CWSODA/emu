@@ -39,9 +39,14 @@ class CPU {
     }
     void load_rom(std::string path) { data.load_ROM_from_path(path.c_str()); }
     void load_test_rom(uint8_t idx);
-    bool run(bool stop_on_halt = false);
+    int run();
+    int run_n_cycles(int cycles);
     clock_cycles parse_byte(uint8_t byte);
+
+    // check states
     void dump_state(std::ofstream& stream, bool show_flags = false);
+    bool check_is_halted() { return is_halted; }
+    bool check_is_stopped() { return is_stopped; }
 
    private:
     Clock* clock;

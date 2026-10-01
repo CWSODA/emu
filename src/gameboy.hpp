@@ -18,7 +18,10 @@ class GameBoy {
     }
     void load_test_rom(uint8_t idx);
     void load_rom_from_path(const char* filename);
-    bool run() { return cpu.run(); }
+    int run() { return cpu.run(); }
+    int run_n_cycles(int cycles) { return cpu.run_n_cycles(cycles); }
+    bool check_frame_ready() { return ppu.check_frame_ready(); }
+    const uint8_t* get_frame_data() { return ppu.get_frame_data(); }
 
     /* ------------------------ dump ------------------------ */
     void dump_cpu_state() { cpu.dump_state(log_misc(), true); }

@@ -4,8 +4,7 @@
 
 int main(int argc, char* argv[]) {
     SDLApp app;
-    // app.run();
-    // return 0;
+    app.init();
 
     GameBoy gb;
     if (argc == 2) {  // loads rom if argument given
@@ -16,8 +15,14 @@ int main(int argc, char* argv[]) {
         gb.load_test_rom(test_rom_idx);
     }
     gb.dump_memory();
-    while (gb.run()) {
-        gb.dump_cpu_state();
+
+    // start running
+    while (true) {
+        if (!app.poll_input()) break;
+        gb.run_n_cycles(100);
+        if (gb.check_frame_ready()) {
+            app.update_framebuffer(gb.get_frame_data());
+        }
     }
 
     return 0;

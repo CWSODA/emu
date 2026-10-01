@@ -3,11 +3,12 @@
 
 #include "cpu.hpp"
 
-bool CPU::run(bool stop_on_halt) {
+// executes instructions and returns clock cycles elapsed
+int CPU::run() {
     check_interrupt();
     if (is_halted) {
         clock->tick(1);  // tick by 1 if halted
-        return true;
+        return 1;
     }
 
     auto byte = mm->read_mem(data.get_PC());
@@ -20,9 +21,16 @@ bool CPU::run(bool stop_on_halt) {
     data.inc_PC();
     auto cycles = parse_byte(byte);
     clock->tick(cycles);
+    return cycles;
+}
 
-    if (stop_on_halt && is_halted) return false;
-    return (instr_count <= cpu_instr_limit);
+// runs the cpu for n number of cycles
+int CPU::run_n_cycles(int cycles) {
+    int cycle_count = 0;
+    while (cycle_count < cycles) {
+        cycle_count += run();
+    }
+    return cycle_count;
 }
 
 clock_cycles CPU::parse_byte(uint8_t byte) {
