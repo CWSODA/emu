@@ -33,7 +33,7 @@ void PPU::tick(uint8_t cycles) {
     if (ppu_state != SEND_PIXEL && line_dots > 80) {
         set_ppu_state(SEND_PIXEL);
         draw_background();
-        print_background();
+        // print_background();
         is_frame_ready = true;
         return;
     }

@@ -513,7 +513,6 @@ clock_cycles CPU::handle_imm8(uint8_t byte) {
     switch (opcode) {
         case STOP_IMM8: {
             CODE("stop");
-            puts("stop");
             mm->set_mem(0xff04, 0);  // reset timer counter
             is_stopped = true;
             return 0;

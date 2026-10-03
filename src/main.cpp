@@ -1,14 +1,23 @@
 #include "gameboy.hpp"
 #include "logger.hpp"
 #include "render.hpp"
+#include "exec_timer.hpp"
+
+constexpr char tetris_path[] = "../misc_test/tetris.gb";
 
 int main(int argc, char* argv[]) {
     SDLApp app;
-    // app.init();
+    app.init();
 
     GameBoy gb;
     if (argc == 2) {  // loads rom if argument given
-        gb.load_rom_from_path(argv[1]);
+        if (std::strcmp(argv[1], "tetris") == 0) {
+            puts("Loading tetris...");
+            gb.load_rom_from_path(tetris_path);
+        } else {
+            gb.load_rom_from_path(argv[1]);
+        }
+
     } else if (argc == 3) {  // loads test rom
         int test_rom_idx = std::stoi(argv[2]);
         printf("Loading test rom(%d)...\n", test_rom_idx);
@@ -17,9 +26,6 @@ int main(int argc, char* argv[]) {
     gb.dump_memory();
 
     // start running
-    while (true) {
-        gb.run();
-    }
     while (true) {
         if (!app.poll_input()) break;
         gb.run_n_cycles(100);

@@ -13,6 +13,7 @@ void copy_cvt(uint8_t* from, ColorRGBA* to, size_t n) {
 }
 
 // draw 32x32 background = 256 tiles
+// optimize later so tiles arent read twice
 void PPU::draw_background() {
     Tile tiles[1 + BG_END - BG_START];
     int count = 0;
